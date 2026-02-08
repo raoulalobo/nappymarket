@@ -79,4 +79,12 @@ export const auth = betterAuth({
 
   // Secret pour signer les tokens (doit etre different en production)
   secret: process.env.BETTER_AUTH_SECRET,
+
+  // Origines autorisees a appeler l'API auth
+  // Necessaire en production car Better Auth bloque les origines non declarees
+  // Inclut l'URL de production Vercel et localhost pour le dev
+  trustedOrigins: [
+    process.env.BETTER_AUTH_URL ?? "http://localhost:3000",
+    process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
+  ],
 })

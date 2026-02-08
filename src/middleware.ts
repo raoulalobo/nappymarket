@@ -25,16 +25,21 @@ import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
 /**
- * Nom du cookie de session Better Auth
- * Better Auth utilise "better-auth.session_token" par defaut
+ * Noms possibles du cookie de session Better Auth
+ * - En HTTP (dev local) : "better-auth.session_token"
+ * - En HTTPS (production Vercel) : "__Secure-better-auth.session_token"
+ * Better Auth ajoute le prefixe __Secure- automatiquement sur HTTPS
  */
 const SESSION_COOKIE_NAME = "better-auth.session_token"
+const SECURE_SESSION_COOKIE_NAME = "__Secure-better-auth.session_token"
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Verifier la presence du cookie de session
-  const sessionToken = request.cookies.get(SESSION_COOKIE_NAME)
+  // Verifier la presence du cookie de session (HTTP ou HTTPS)
+  const sessionToken =
+    request.cookies.get(SECURE_SESSION_COOKIE_NAME) ??
+    request.cookies.get(SESSION_COOKIE_NAME)
 
   // Si pas de session, rediriger vers /connexion avec l'URL de retour
   if (!sessionToken) {
