@@ -66,6 +66,33 @@ export async function updateStylistProfile(
 
   const { bio, city, address, radiusKm } = parsed.data
 
+  // Geocoder la ville via l'API Adresse Gouv (api-adresse.data.gouv.fr)
+  // Retourne les coordonnees GPS (latitude, longitude) pour la recherche geographique
+  // Si l'API echoue, on continue sans coordonnees (null) — ne bloque pas la sauvegarde
+  let latitude: number | null = null
+  let longitude: number | null = null
+
+  try {
+    const geocodeUrl = `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(city)}&type=municipality&limit=1`
+    const geocodeResponse = await fetch(geocodeUrl, {
+      signal: AbortSignal.timeout(5000), // Timeout 5s pour ne pas bloquer
+    })
+
+    if (geocodeResponse.ok) {
+      const geoData = await geocodeResponse.json()
+      // L'API retourne un GeoJSON avec features[].geometry.coordinates = [lng, lat]
+      // Attention : GeoJSON utilise l'ordre [longitude, latitude], pas [lat, lng]
+      if (geoData.features && geoData.features.length > 0) {
+        const [lng, lat] = geoData.features[0].geometry.coordinates
+        latitude = lat
+        longitude = lng
+      }
+    }
+  } catch {
+    // Erreur reseau ou timeout — on continue sans coordonnees
+    console.warn(`[geocode] Impossible de geocoder la ville "${city}"`)
+  }
+
   // Upsert : creer le profil s'il n'existe pas, sinon le mettre a jour
   const profile = await db.stylistProfile.upsert({
     where: { userId: session.user.id },
@@ -75,12 +102,16 @@ export async function updateStylistProfile(
       city,
       address: address || null,
       radiusKm,
+      latitude,
+      longitude,
     },
     update: {
       bio: bio || null,
       city,
       address: address || null,
       radiusKm,
+      latitude,
+      longitude,
     },
   })
 

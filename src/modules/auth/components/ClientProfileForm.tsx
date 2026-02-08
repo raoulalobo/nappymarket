@@ -58,17 +58,24 @@ import {
 
 /**
  * Schema de validation pour le profil cliente.
- * Les deux champs sont optionnels car la cliente n'est pas obligee
- * de renseigner sa ville ou son adresse immediatement.
+ * Les champs sont optionnels car la cliente n'est pas obligee
+ * de tout renseigner immediatement.
  *
  * Exemple de donnees valides :
- *   { city: "Paris", address: "12 rue de la Paix" }
- *   { city: "Lyon" }  // address optionnel
- *   {}                 // les deux optionnels
+ *   { city: "Paris", address: "12 rue de la Paix", phone: "06 12 34 56 78" }
+ *   { city: "Lyon" }  // address et phone optionnels
+ *   {}                 // tous optionnels
  */
 const clientProfileSchema = z.object({
   city: z.string().optional(),
   address: z.string().optional(),
+  phone: z
+    .string()
+    .optional()
+    .refine(
+      (val) => !val || /^(?:(?:\+33|0)\s?[1-9])(?:[\s.-]?\d{2}){4}$/.test(val),
+      { message: "Numero de telephone invalide (format francais attendu)" }
+    ),
 })
 
 /** Type TypeScript infere du schema Zod */
@@ -109,6 +116,7 @@ export function ClientProfileForm() {
     defaultValues: {
       city: "",
       address: "",
+      phone: "",
     },
   })
 
@@ -126,6 +134,7 @@ export function ClientProfileForm() {
       form.reset({
         city: profile.city ?? "",
         address: profile.address ?? "",
+        phone: profile.user.phone ?? "",
       })
     }
   }, [profile, form])
@@ -159,6 +168,8 @@ export function ClientProfileForm() {
           {/* Skeleton pour le champ ville */}
           <Skeleton className="h-10 w-full" />
           {/* Skeleton pour le champ adresse */}
+          <Skeleton className="h-10 w-full" />
+          {/* Skeleton pour le champ telephone */}
           <Skeleton className="h-10 w-full" />
           {/* Skeleton pour le bouton */}
           <Skeleton className="h-10 w-32" />
@@ -213,6 +224,25 @@ export function ClientProfileForm() {
                   <FormControl>
                     <Input
                       placeholder="Ex : 12 rue de la Paix"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Champ telephone : optionnel, format francais (06/07 ou +33) */}
+            <FormField
+              control={form.control}
+              name="phone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Telephone</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="tel"
+                      placeholder="Ex : 06 12 34 56 78"
                       {...field}
                     />
                   </FormControl>

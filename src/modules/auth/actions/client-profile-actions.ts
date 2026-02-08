@@ -36,6 +36,7 @@ type ClientProfileWithUser = ClientProfile & {
     image: string | null
     firstName: string | null
     lastName: string | null
+    phone: string | null
   }
 }
 
@@ -78,6 +79,7 @@ export async function getClientProfile(): Promise<
           image: true,
           firstName: true,
           lastName: true,
+          phone: true,
         },
       },
     },
@@ -95,6 +97,7 @@ export async function getClientProfile(): Promise<
 interface UpdateClientProfileInput {
   city?: string
   address?: string
+  phone?: string
 }
 
 /**
@@ -127,22 +130,33 @@ export async function updateClientProfile(
     return { success: false, error: "Acces reserve aux clientes" }
   }
 
-  // Preparer les donnees pour l'upsert
+  // Preparer les donnees du profil pour l'upsert
   // Les valeurs vides sont converties en null pour nettoyer la base
-  const data = {
+  const profileData = {
     city: input.city?.trim() || null,
     address: input.address?.trim() || null,
   }
 
+  // Preparer le telephone pour la table User (champ sur User, pas ClientProfile)
+  const phoneValue = input.phone?.trim() || null
+
   // Upsert : creer le profil s'il n'existe pas, sinon le mettre a jour
-  const profile = await db.clientProfile.upsert({
-    where: { userId: session.user.id },
-    create: {
-      userId: session.user.id,
-      ...data,
-    },
-    update: data,
-  })
+  // + mettre a jour le telephone sur la table User en parallele
+  const [profile] = await Promise.all([
+    db.clientProfile.upsert({
+      where: { userId: session.user.id },
+      create: {
+        userId: session.user.id,
+        ...profileData,
+      },
+      update: profileData,
+    }),
+    // Mettre a jour le telephone sur la table User
+    db.user.update({
+      where: { id: session.user.id },
+      data: { phone: phoneValue },
+    }),
+  ])
 
   return { success: true, data: profile }
 }

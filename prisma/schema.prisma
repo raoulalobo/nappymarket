@@ -200,6 +200,8 @@ model StylistProfile {
   availabilities Availability[]
   bookings       Booking[]        @relation("StylistBookings")
 
+  // Index composite pour les requetes de recherche geographique (Haversine)
+  @@index([latitude, longitude])
   @@map("stylist_profiles")
 }
 

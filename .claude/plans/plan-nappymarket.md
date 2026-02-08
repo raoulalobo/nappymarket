@@ -92,7 +92,7 @@ validation de la precedente.
 
 ---
 
-## Phase 3 — Profils & Catalogue
+## Phase 3 — Profils & Catalogue ✅ TERMINEE
 
 **Objectif** : Les coiffeuses peuvent completer leur profil, gerer leur
               portfolio. L'admin gere le catalogue de prestations.
@@ -105,33 +105,33 @@ validation de la precedente.
 
 ### Taches
 
-- [ ] 3.1 Module src/modules/stylist/
+- [x] 3.1 Module src/modules/stylist/
   - Page profil coiffeuse (edition) : bio, ville, adresse, rayon
   - Upload photo de profil (Supabase Storage)
   - Gestion du portfolio : upload/suppression de photos avant/apres
   - Selection des prestations dans le catalogue + prix personnalises
   - Hooks TanStack Query : useStylistProfile, useUpdateProfile, usePortfolio
-- [ ] 3.2 Module src/modules/admin/
+- [x] 3.2 Module src/modules/admin/
   - Page catalogue CRUD : creer/modifier/supprimer des categories
   - Liste des coiffeuses inscrites avec statut (verifie/non verifie)
   - Action valider/suspendre un profil coiffeuse
   - Hooks TanStack Query : useCategories, useStylists (admin)
-- [ ] 3.3 Configurer Supabase Storage
+- [x] 3.3 Configurer Supabase Storage
   - Bucket avatars (photos de profil)
   - Bucket portfolio (photos de realisations)
   - Policies d'acces (upload: owner only, read: public)
-- [ ] 3.4 Composants partages (ImageUpload, Avatar, PortfolioGrid)
-- [ ] 3.5 Page profil public coiffeuse (/coiffeuse/[id])
-- [ ] 3.6 Profil cliente (edition) : adresse, telephone
-- [ ] 3.7 Seed : categories de coiffures par defaut
+- [x] 3.4 Composants partages (ImageUpload, Avatar, PortfolioGrid)
+- [x] 3.5 Page profil public coiffeuse (/coiffeuse/[id])
+- [x] 3.6 Profil cliente (edition) : adresse, telephone
+- [x] 3.7 Seed : categories de coiffures par defaut
 
 ### Tests Phase 3
 
-- [ ] La coiffeuse peut completer son profil et uploader des photos
-- [ ] Le portfolio s'affiche correctement sur le profil public
-- [ ] L'admin peut creer/modifier/supprimer des categories
-- [ ] Les images sont bien stockees sur Supabase Storage
-- [ ] Un visiteur non connecte voit le profil public sans erreur
+- [x] La coiffeuse peut completer son profil et uploader des photos
+- [x] Le portfolio s'affiche correctement sur le profil public
+- [x] L'admin peut creer/modifier/supprimer des categories
+- [x] Les images sont bien stockees sur Supabase Storage
+- [x] Un visiteur non connecte voit le profil public sans erreur
 
 ---
 
@@ -306,7 +306,7 @@ validation de la precedente.
 | ----- | ---------------------------- | ----------- | -------- | --------- |
 | 1     | Fondations                   | Aucune      | Critique | ✅ FAIT   |
 | 2     | Authentification             | Phase 1     | Critique | ✅ FAIT   |
-| 3     | Profils & Catalogue          | Phase 2     | Critique | A faire   |
+| 3     | Profils & Catalogue          | Phase 2     | Critique | ✅ FAIT   |
 | 4     | Recherche & Decouverte       | Phase 3     | Haute    | A faire   |
 | 5     | Disponibilites & Reservation | Phase 4     | Haute    | A faire   |
 | 6     | Paiement Stripe              | Phase 5     | Haute    | A faire   |

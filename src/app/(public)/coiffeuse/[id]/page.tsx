@@ -12,25 +12,32 @@
  *   - Utilise formatPrice() pour afficher les prix en euros
  *   - Utilise next/image pour les photos du portfolio et l'avatar
  *   - generateMetadata() genere le titre dynamique "Profil de [Nom]"
+ *   - Entoure le contenu avec Header + Footer pour la navigation
  *
  * Exemple d'URL : /coiffeuse/clxyz123abc (ou clxyz123abc est l'ID du StylistProfile)
  *
  * Sections affichees :
- *   1. Header : photo, nom, ville, badge verifie, bio
- *   2. Prestations : grille de services avec prix et duree
- *   3. Portfolio : grille responsive de photos
+ *   1. Lien retour vers /recherche
+ *   2. Hero : photo agrandie, nom, ville, badge verifie, bio, bouton Reserver
+ *   3. Prestations : grille de services avec badge categorie, prix et duree
+ *   4. Portfolio : grille responsive de photos avec hover zoom
  */
 import { notFound } from "next/navigation"
 import Image from "next/image"
+import Link from "next/link"
 import type { Metadata } from "next"
+import { MapPin, ArrowLeft, Clock, Scissors } from "lucide-react"
 import { db } from "@/shared/lib/db"
 import { formatPrice } from "@/shared/lib/utils"
+import { Header } from "@/shared/components/layout/Header"
+import { Footer } from "@/shared/components/layout/Footer"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Separator } from "@/components/ui/separator"
 import {
   Card,
   CardContent,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card"
 
 /* ------------------------------------------------------------------ */
@@ -165,8 +172,10 @@ export async function generateMetadata({
 /**
  * StylistPublicPage — Page publique du profil d'une coiffeuse
  *
- * Affiche le header avec les informations principales, la liste
- * des prestations proposees et le portfolio de photos.
+ * Affiche le Header, un lien de retour, la section hero avec les
+ * informations principales, la liste des prestations, le portfolio
+ * de photos, puis le Footer. Responsive mobile-first.
+ *
  * Si le profil n'existe pas ou est inactif, renvoie vers la page 404.
  */
 export default async function StylistPublicPage({ params }: StylistPageProps) {
@@ -187,163 +196,223 @@ export default async function StylistPublicPage({ params }: StylistPageProps) {
       ? `${profile.user.firstName} ${profile.user.lastName}`
       : profile.user.name
 
+  // Initiales pour l'avatar par defaut (ex: "Marie Dupont" -> "MD")
+  const initials = displayName
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2)
+
   return (
-    <div className="container mx-auto px-4 py-8 space-y-10">
-      {/* ============================================================ */}
-      {/* SECTION HEADER : photo, nom, ville, badge verifie, bio       */}
-      {/* ============================================================ */}
-      <section className="flex flex-col items-center gap-6 sm:flex-row sm:items-start">
-        {/* Photo de profil (ou avatar par defaut) */}
-        <div className="relative h-32 w-32 shrink-0 overflow-hidden rounded-full bg-muted">
-          {profile.user.image ? (
-            <Image
-              src={profile.user.image}
-              alt={`Photo de profil de ${displayName}`}
-              fill
-              className="object-cover"
-              sizes="128px"
-              priority
-            />
-          ) : (
-            /**
-             * Avatar par defaut : affiche les initiales du nom.
-             * Exemple : "Marie Dupont" -> "MD"
-             */
-            <div className="flex h-full w-full items-center justify-center bg-primary/10 text-3xl font-semibold text-primary">
-              {displayName
-                .split(" ")
-                .map((part) => part[0])
-                .join("")
-                .toUpperCase()
-                .slice(0, 2)}
-            </div>
-          )}
-        </div>
+    <div className="flex min-h-screen flex-col">
+      {/* Navigation principale (logo, liens, menu user) */}
+      <Header />
 
-        {/* Informations textuelles */}
-        <div className="text-center sm:text-left">
-          {/* Nom + badge verifie */}
-          <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
-            <h1 className="text-2xl font-bold">{displayName}</h1>
-            {profile.isVerified && (
-              <Badge variant="secondary">Verifie</Badge>
-            )}
-          </div>
+      {/* Contenu principal centre avec max-w-4xl */}
+      <main className="flex-1">
+        <div className="mx-auto max-w-4xl px-4 py-8 space-y-10">
+          {/* ============================================================ */}
+          {/* LIEN RETOUR vers la page de recherche                        */}
+          {/* ============================================================ */}
+          <Link
+            href="/recherche"
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Retour a la recherche
+          </Link>
 
-          {/* Ville */}
-          <p className="mt-1 text-muted-foreground">{profile.city}</p>
-
-          {/* Bio (si renseignee) */}
-          {profile.bio && (
-            <p className="mt-4 max-w-2xl whitespace-pre-line text-sm leading-relaxed">
-              {profile.bio}
-            </p>
-          )}
-        </div>
-      </section>
-
-      {/* ============================================================ */}
-      {/* SECTION PRESTATIONS : liste des services proposes            */}
-      {/* ============================================================ */}
-      <section>
-        <h2 className="mb-4 text-xl font-semibold">Prestations</h2>
-
-        {profile.services.length === 0 ? (
-          /**
-           * Message si aucune prestation n'est configuree.
-           * La coiffeuse doit ajouter des services depuis son dashboard.
-           */
-          <p className="text-muted-foreground">Aucune prestation disponible.</p>
-        ) : (
-          /**
-           * Grille responsive de cartes de services.
-           * Chaque carte affiche : nom de la categorie, prix, duree, description.
-           * Layout : 1 colonne mobile, 2 tablette, 3 desktop
-           */
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {profile.services.map((service) => (
-              <Card key={service.id}>
-                <CardHeader className="pb-2">
-                  {/* Nom de la categorie (ex: "Tresses", "Locks") */}
-                  <CardTitle className="text-base">
-                    {service.category.name}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {/* Prix et duree sur la meme ligne */}
-                  <div className="flex items-center justify-between">
-                    {/* Prix formate depuis les centimes (ex: 4500 -> "45,00 EUR") */}
-                    <span className="text-lg font-semibold text-primary">
-                      {formatPrice(service.price)}
-                    </span>
-                    {/* Duree formatee (ex: 150 -> "2h30", 45 -> "45 min") */}
-                    <span className="text-sm text-muted-foreground">
-                      {formatDuration(service.durationMinutes)}
-                    </span>
-                  </div>
-
-                  {/* Description du service (si renseignee) */}
-                  {service.description && (
-                    <p className="mt-2 text-sm text-muted-foreground">
-                      {service.description}
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* ============================================================ */}
-      {/* SECTION PORTFOLIO : grille de photos                         */}
-      {/* ============================================================ */}
-      <section>
-        <h2 className="mb-4 text-xl font-semibold">Portfolio</h2>
-
-        {profile.portfolio.length === 0 ? (
-          /**
-           * Message si aucune photo n'a ete ajoutee au portfolio.
-           * La coiffeuse peut ajouter des photos depuis son dashboard.
-           */
-          <p className="text-muted-foreground">Aucune photo dans le portfolio.</p>
-        ) : (
-          /**
-           * Grille responsive de photos du portfolio.
-           * Layout adaptatif :
-           *   - Mobile : 2 colonnes
-           *   - Tablette : 3 colonnes
-           *   - Desktop : 4 colonnes
-           * Chaque image a un ratio carre (aspect-square) pour un rendu uniforme.
-           */
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {profile.portfolio.map((image) => (
-              <div
-                key={image.id}
-                className="group relative aspect-square overflow-hidden rounded-lg bg-muted"
-              >
-                {/* Image optimisee via next/image */}
+          {/* ============================================================ */}
+          {/* SECTION HERO : avatar, nom, ville, badge, bio, CTA           */}
+          {/* ============================================================ */}
+          <section className="flex flex-col items-center gap-6 sm:flex-row sm:items-start">
+            {/* Avatar agrandi (160px) avec ring decoratif */}
+            <div className="relative h-40 w-40 shrink-0 overflow-hidden rounded-full bg-muted ring-4 ring-primary/20">
+              {profile.user.image ? (
                 <Image
-                  src={image.url}
-                  alt={image.caption ?? `Photo du portfolio de ${displayName}`}
+                  src={profile.user.image}
+                  alt={`Photo de profil de ${displayName}`}
                   fill
-                  className="object-cover transition-transform duration-300 group-hover:scale-105"
-                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                  className="object-cover"
+                  sizes="160px"
+                  priority
                 />
+              ) : (
+                /**
+                 * Avatar par defaut : affiche les initiales du nom
+                 * dans un cercle colore. Fond primary/10, texte primary.
+                 */
+                <div className="flex h-full w-full items-center justify-center bg-primary/10 text-4xl font-semibold text-primary">
+                  {initials}
+                </div>
+              )}
+            </div>
 
-                {/* Legende de la photo (si renseignee), affichee en overlay au survol */}
-                {image.caption && (
-                  <div className="absolute inset-x-0 bottom-0 bg-black/60 px-2 py-1.5 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                    <p className="text-xs text-white line-clamp-2">
-                      {image.caption}
-                    </p>
-                  </div>
+            {/* Informations textuelles + CTA */}
+            <div className="flex-1 text-center sm:text-left">
+              {/* Nom + badge verifie */}
+              <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+                <h1 className="text-3xl font-bold">{displayName}</h1>
+                {profile.isVerified && (
+                  <Badge variant="secondary">Verifiee</Badge>
                 )}
               </div>
-            ))}
-          </div>
-        )}
-      </section>
+
+              {/* Ville avec icone MapPin */}
+              <p className="mt-1.5 flex items-center justify-center gap-1.5 text-muted-foreground sm:justify-start">
+                <MapPin className="h-4 w-4" />
+                {profile.city}
+              </p>
+
+              {/* Bio (si renseignee) dans un bloc avec bordure gauche */}
+              {profile.bio && (
+                <p className="mt-4 max-w-2xl whitespace-pre-line border-l-2 border-primary/30 pl-4 text-sm leading-relaxed text-muted-foreground">
+                  {profile.bio}
+                </p>
+              )}
+
+              {/* Bouton CTA Reserver (placeholder, fonctionnel en Phase 5) */}
+              <div className="mt-6">
+                <Button asChild size="lg">
+                  <Link href="#">
+                    <Scissors className="mr-2 h-4 w-4" />
+                    Reserver une prestation
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          </section>
+
+          {/* ============================================================ */}
+          {/* SECTION PRESTATIONS : liste des services proposes            */}
+          {/* ============================================================ */}
+          <section>
+            {/* Titre avec separateur visuel */}
+            <div className="flex items-center gap-4">
+              <h2 className="text-xl font-semibold">Prestations</h2>
+              <Separator className="flex-1" />
+            </div>
+
+            {profile.services.length === 0 ? (
+              /**
+               * Message si aucune prestation n'est configuree.
+               * La coiffeuse doit ajouter des services depuis son dashboard.
+               */
+              <p className="mt-4 text-muted-foreground">
+                Aucune prestation disponible.
+              </p>
+            ) : (
+              /**
+               * Grille responsive de cartes de services.
+               * Chaque carte affiche : badge categorie, prix en primary,
+               * duree en badge outline, description en muted.
+               * Layout : 1 colonne mobile, 2 tablette, 3 desktop
+               */
+              <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {profile.services.map((service) => (
+                  <Card key={service.id} className="flex flex-col">
+                    <CardHeader className="pb-2">
+                      {/* Badge categorie en haut de la carte */}
+                      <Badge variant="secondary" className="w-fit">
+                        {service.category.name}
+                      </Badge>
+                    </CardHeader>
+                    <CardContent className="flex flex-1 flex-col">
+                      {/* Prix et duree */}
+                      <div className="flex items-center justify-between">
+                        {/* Prix formate depuis les centimes (ex: 4500 -> "45,00 EUR") */}
+                        <span className="text-lg font-semibold text-primary">
+                          {formatPrice(service.price)}
+                        </span>
+                        {/* Duree formatee en badge outline (ex: "2h30") */}
+                        <Badge variant="outline" className="gap-1">
+                          <Clock className="h-3 w-3" />
+                          {formatDuration(service.durationMinutes)}
+                        </Badge>
+                      </div>
+
+                      {/* Description du service (si renseignee) */}
+                      {service.description && (
+                        <p className="mt-3 flex-1 text-sm text-muted-foreground">
+                          {service.description}
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </section>
+
+          {/* ============================================================ */}
+          {/* SECTION PORTFOLIO : grille de photos                         */}
+          {/* ============================================================ */}
+          <section>
+            {/* Titre avec compteur de photos + separateur */}
+            <div className="flex items-center gap-4">
+              <h2 className="text-xl font-semibold">
+                Portfolio
+                {profile.portfolio.length > 0 && (
+                  <span className="ml-2 text-base font-normal text-muted-foreground">
+                    ({profile.portfolio.length} photo{profile.portfolio.length > 1 ? "s" : ""})
+                  </span>
+                )}
+              </h2>
+              <Separator className="flex-1" />
+            </div>
+
+            {profile.portfolio.length === 0 ? (
+              /**
+               * Message si aucune photo n'a ete ajoutee au portfolio.
+               * La coiffeuse peut ajouter des photos depuis son dashboard.
+               */
+              <p className="mt-4 text-muted-foreground">
+                Aucune photo dans le portfolio.
+              </p>
+            ) : (
+              /**
+               * Grille responsive de photos du portfolio.
+               * Layout adaptatif :
+               *   - Mobile : 2 colonnes
+               *   - Tablette : 3 colonnes
+               *   - Desktop : 4 colonnes
+               * Chaque image a un ratio carre (aspect-square) pour un rendu uniforme.
+               * Hover : zoom leger + affichage de la legende en overlay.
+               */
+              <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                {profile.portfolio.map((image) => (
+                  <div
+                    key={image.id}
+                    className="group relative aspect-square overflow-hidden rounded-lg bg-muted"
+                  >
+                    {/* Image optimisee via next/image */}
+                    <Image
+                      src={image.url}
+                      alt={image.caption ?? `Photo du portfolio de ${displayName}`}
+                      fill
+                      className="object-cover transition-transform duration-300 group-hover:scale-105"
+                      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                    />
+
+                    {/* Legende de la photo (si renseignee), affichee en overlay au survol */}
+                    {image.caption && (
+                      <div className="absolute inset-x-0 bottom-0 bg-black/60 px-2 py-1.5 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                        <p className="text-xs text-white line-clamp-2">
+                          {image.caption}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
+      </main>
+
+      {/* Pied de page (liens, legal, copyright) */}
+      <Footer />
     </div>
   )
 }

@@ -111,7 +111,7 @@ export function useUpdateClientProfile() {
      * Appeler la server action pour creer/mettre a jour le profil.
      * Si la server action echoue, lever une Error pour declencher onError.
      */
-    mutationFn: async (data: { city?: string; address?: string }) => {
+    mutationFn: async (data: { city?: string; address?: string; phone?: string }) => {
       const result = await updateClientProfile(data)
       if (!result.success) throw new Error(result.error)
       return result.data
