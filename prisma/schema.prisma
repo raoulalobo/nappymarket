@@ -1,0 +1,411 @@
+// =============================================================================
+// NappyMarket — Schema Prisma
+//
+// Role : Definir le modele de donnees de la marketplace coiffure afro.
+// Tables : User, StylistProfile, ClientProfile, ServiceCategory,
+//          StylistService, PortfolioImage, Availability, Booking,
+//          Payment, Message, Conversation
+//
+// Interactions :
+//   - Supabase PostgreSQL (cloud) via connection pooling (PgBouncer)
+//   - ZenStack pour les access policies
+//   - Better Auth pour l'authentification (table User)
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// =============================================================================
+// ENUMS
+// =============================================================================
+
+/// Roles des utilisateurs sur la plateforme
+/// - CLIENT : cliente qui recherche et reserve des coiffeuses
+/// - STYLIST : coiffeuse qui propose ses services
+/// - ADMIN : administrateur de la plateforme
+enum Role {
+  CLIENT
+  STYLIST
+  ADMIN
+}
+
+/// Statuts possibles d'une reservation
+/// - PENDING : en attente de paiement
+/// - CONFIRMED : payee et confirmee
+/// - IN_PROGRESS : prestation en cours
+/// - COMPLETED : prestation terminee
+/// - CANCELLED : annulee (par la cliente ou la coiffeuse)
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+/// Statuts possibles d'un paiement Stripe
+/// - PENDING : paiement initie mais pas encore confirme
+/// - SUCCEEDED : paiement reussi
+/// - FAILED : paiement echoue
+/// - REFUNDED : paiement rembourse
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+}
+
+// =============================================================================
+// MODELES
+// =============================================================================
+
+/// Utilisateur de la plateforme (cliente, coiffeuse ou admin)
+///
+/// Interactions :
+///   - Better Auth gere l'inscription et la connexion
+///   - Le role determine les pages accessibles (middleware)
+///   - Lie a StylistProfile (si STYLIST) ou ClientProfile (si CLIENT)
+///   - Les champs name, email, emailVerified, image, createdAt, updatedAt
+///     sont requis par Better Auth. Les champs firstName, lastName, role, phone
+///     sont des champs additionnels configures dans Better Auth.
+///   - Le mot de passe est stocke dans la table Account (pas dans User)
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  emailVerified Boolean  @default(false)
+  name          String
+  image         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Champs additionnels NappyMarket (configures dans Better Auth)
+  firstName String?
+  lastName  String?
+  role      Role    @default(CLIENT)
+  phone     String?
+  isActive  Boolean @default(true)
+
+  // Relations Better Auth
+  sessions Session[]
+  accounts Account[]
+
+  // Relations NappyMarket
+  stylistProfile   StylistProfile?
+  clientProfile    ClientProfile?
+  bookingsAsClient Booking[]       @relation("ClientBookings")
+  sentMessages     Message[]       @relation("SentMessages")
+
+  @@map("users")
+}
+
+/// Session Better Auth — Session active d'un utilisateur
+///
+/// Interactions :
+///   - Creee automatiquement par Better Auth lors de la connexion
+///   - Le token est unique et sert a identifier la session (cookie)
+///   - expiresAt determine la duree de vie de la session
+///   - ipAddress et userAgent servent a la securite (detection d'anomalies)
+model Session {
+  id        String   @id @default(cuid())
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+/// Account Better Auth — Compte d'authentification lie a un utilisateur
+///
+/// Interactions :
+///   - Pour le provider "credential" (email/password), le champ `password`
+///     contient le hash du mot de passe (bcrypt)
+///   - Un utilisateur peut avoir plusieurs accounts (email, Google, etc.)
+///   - accountId = identifiant unique du provider (email pour credentials)
+///   - providerId = type de provider ("credential", "google", etc.)
+model Account {
+  id                    String    @id @default(cuid())
+  accountId             String
+  providerId            String
+  userId                String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("accounts")
+}
+
+/// Verification Better Auth — Tokens de verification (email, reset password)
+///
+/// Interactions :
+///   - Cree par Better Auth pour la verification d'email ou le reset de MDP
+///   - identifier = email de l'utilisateur
+///   - value = token de verification
+///   - expiresAt = date d'expiration du token
+model Verification {
+  id         String    @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime? @default(now())
+  updatedAt  DateTime? @updatedAt
+
+  @@map("verifications")
+}
+
+/// Profil public d'une coiffeuse
+///
+/// Interactions :
+///   - Visible par les visiteurs non connectes (page profil public)
+///   - Contient les infos de localisation pour la recherche geographique
+///   - Lie au portfolio, aux services et aux disponibilites
+///
+/// Exemple : une coiffeuse a Paris, rayon 15km, proposant tresses et locks
+model StylistProfile {
+  id         String  @id @default(cuid())
+  userId     String  @unique
+  bio        String?
+  city       String
+  address    String?
+  latitude   Float?
+  longitude  Float?
+  radiusKm   Int     @default(10) // Rayon de deplacement en km
+  isVerified Boolean @default(false) // Valide par l'admin
+  isActive   Boolean @default(true) // Peut desactiver son profil
+
+  // Stripe Connect : ID du compte connecte pour recevoir les paiements
+  stripeAccountId String?
+
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  portfolio      PortfolioImage[]
+  services       StylistService[]
+  availabilities Availability[]
+  bookings       Booking[]        @relation("StylistBookings")
+
+  @@map("stylist_profiles")
+}
+
+/// Profil d'une cliente
+///
+/// Interactions :
+///   - Contient l'adresse par defaut pour les prestations a domicile
+///   - Coordonnees GPS pour pre-remplir la recherche
+model ClientProfile {
+  id        String  @id @default(cuid())
+  userId    String  @unique
+  address   String?
+  city      String?
+  latitude  Float?
+  longitude Float?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("client_profiles")
+}
+
+/// Categorie de prestation definie par l'admin
+///
+/// Interactions :
+///   - CRUD par l'admin dans le back-office (module admin)
+///   - Les coiffeuses selectionnent les categories qu'elles proposent
+///
+/// Exemples : "Tresses", "Locks / Dreadlocks", "Tissage / Weaving",
+///            "Crochet braids", "Nattes collees", "Coloration"
+model ServiceCategory {
+  id          String  @id @default(cuid())
+  name        String  @unique
+  description String?
+  imageUrl    String?
+  isActive    Boolean @default(true)
+
+  services StylistService[]
+
+  @@map("service_categories")
+}
+
+/// Service propose par une coiffeuse dans une categorie donnee
+///
+/// Interactions :
+///   - Une coiffeuse peut proposer plusieurs services dans differentes categories
+///   - Le prix est en centimes pour eviter les erreurs d'arrondi (ex: 3500 = 35.00€)
+///   - La duree estimee sert a calculer les creneaux disponibles
+///
+/// Exemple : coiffeuse "Marie" propose "Tresses africaines" a 45€, duree 2h30
+model StylistService {
+  id              String  @id @default(cuid())
+  stylistId       String
+  categoryId      String
+  price           Int // Prix en centimes (ex: 4500 = 45.00€)
+  durationMinutes Int // Duree estimee en minutes (ex: 150 = 2h30)
+  description     String?
+
+  stylist  StylistProfile  @relation(fields: [stylistId], references: [id], onDelete: Cascade)
+  category ServiceCategory @relation(fields: [categoryId], references: [id])
+  bookings Booking[]
+
+  // Une coiffeuse ne peut pas proposer deux fois la meme categorie
+  @@unique([stylistId, categoryId])
+  @@map("stylist_services")
+}
+
+/// Photo du portfolio d'une coiffeuse
+///
+/// Interactions :
+///   - Stockee sur Supabase Storage (bucket "portfolio")
+///   - Affichee sur le profil public dans une grille responsive
+model PortfolioImage {
+  id        String   @id @default(cuid())
+  stylistId String
+  url       String
+  caption   String?
+  createdAt DateTime @default(now())
+
+  stylist StylistProfile @relation(fields: [stylistId], references: [id], onDelete: Cascade)
+
+  @@map("portfolio_images")
+}
+
+/// Creneau de disponibilite hebdomadaire d'une coiffeuse
+///
+/// Interactions :
+///   - Definit les plages horaires ou la coiffeuse accepte des reservations
+///   - dayOfWeek : 0=Dimanche, 1=Lundi, ..., 6=Samedi
+///   - Utilise par le calendrier de reservation (module booking)
+///
+/// Exemple : Lundi de 09:00 a 18:00, Mardi de 10:00 a 20:00
+model Availability {
+  id        String  @id @default(cuid())
+  stylistId String
+  dayOfWeek Int // 0=Dimanche, 1=Lundi, ..., 6=Samedi
+  startTime String // Format "HH:mm" (ex: "09:00")
+  endTime   String // Format "HH:mm" (ex: "18:00")
+  isActive  Boolean @default(true)
+
+  stylist StylistProfile @relation(fields: [stylistId], references: [id], onDelete: Cascade)
+
+  // Une coiffeuse ne peut pas avoir deux creneaux sur le meme jour
+  // avec les memes horaires (evite les doublons)
+  @@unique([stylistId, dayOfWeek, startTime])
+  @@map("availabilities")
+}
+
+/// Reservation d'une prestation
+///
+/// Interactions :
+///   - Creee par la cliente depuis le profil public d'une coiffeuse
+///   - Declenche un paiement Stripe (module payment)
+///   - Ouvre une conversation de messagerie (module messaging)
+///   - Le statut evolue : PENDING -> CONFIRMED -> IN_PROGRESS -> COMPLETED
+///
+/// Workflow :
+///   1. Cliente selectionne prestation + creneau
+///   2. Reservation creee (PENDING)
+///   3. Paiement Stripe (CONFIRMED)
+///   4. Jour J (IN_PROGRESS)
+///   5. Fin de prestation (COMPLETED)
+model Booking {
+  id              String        @id @default(cuid())
+  clientId        String
+  stylistId       String
+  serviceId       String
+  date            DateTime // Date de la prestation
+  startTime       String // Heure de debut "HH:mm"
+  endTime         String // Heure de fin "HH:mm"
+  status          BookingStatus @default(PENDING)
+  totalPrice      Int // Prix total en centimes
+  address         String // Adresse de la prestation (domicile cliente)
+  city            String? // Ville de la prestation
+  latitude        Float? // Coordonnees GPS du lieu
+  longitude       Float?
+  stripePaymentId String? // ID PaymentIntent Stripe
+  notes           String? // Notes de la cliente pour la coiffeuse
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  client   User            @relation("ClientBookings", fields: [clientId], references: [id])
+  stylist  StylistProfile  @relation("StylistBookings", fields: [stylistId], references: [id])
+  service  StylistService  @relation(fields: [serviceId], references: [id])
+  payment  Payment?
+  messages Message[]
+
+  @@map("bookings")
+}
+
+/// Paiement associe a une reservation
+///
+/// Interactions :
+///   - Cree via Stripe PaymentIntent (module payment)
+///   - La commission plateforme est calculee automatiquement
+///   - Le webhook Stripe met a jour le statut
+///
+/// Exemple : reservation a 45€, commission 15% = 6.75€ pour la plateforme
+model Payment {
+  id              String        @id @default(cuid())
+  bookingId       String        @unique
+  stripePaymentId String        @unique
+  amount          Int // Montant total en centimes
+  platformFee     Int // Commission plateforme en centimes
+  status          PaymentStatus @default(PENDING)
+  createdAt       DateTime      @default(now())
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+
+  @@map("payments")
+}
+
+/// Message dans une conversation liee a une reservation
+///
+/// Interactions :
+///   - Envoye et recu en temps reel via Supabase Realtime
+///   - Lie a un booking (contexte de la reservation)
+///   - Supporte le marquage comme lu (indicateur de messages non lus)
+model Message {
+  id        String   @id @default(cuid())
+  senderId  String
+  bookingId String
+  content   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  sender  User    @relation("SentMessages", fields: [senderId], references: [id])
+  booking Booking @relation(fields: [bookingId], references: [id])
+
+  @@index([bookingId, createdAt]) // Index pour charger les messages d'une conversation
+  @@map("messages")
+}
+
+/// Conversation entre une cliente et une coiffeuse
+///
+/// Interactions :
+///   - Creee automatiquement lors d'une reservation
+///   - Peut exister sans booking (contact direct futur)
+///   - updatedAt sert a trier les conversations par activite recente
+model Conversation {
+  id        String   @id @default(cuid())
+  clientId  String
+  stylistId String
+  bookingId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([clientId, stylistId, bookingId])
+  @@map("conversations")
+}

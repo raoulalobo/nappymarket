@@ -1,0 +1,28 @@
+/**
+ * schema.zmodel — Schema ZenStack (Access Policies)
+ *
+ * Role : Definir les regles d'acces aux donnees au niveau du schema.
+ *        ZenStack "enhance" le client Prisma pour appliquer ces regles
+ *        automatiquement sur chaque requete.
+ *
+ * Interactions :
+ *   - Etend le schema Prisma (prisma/schema.prisma)
+ *   - Les policies sont appliquees via `enhance(db, { user })` dans les server actions
+ *   - Remplace les RLS de Supabase pour le controle d'acces applicatif
+ *
+ * Syntaxe :
+ *   @@allow('action', condition)  -> Autorise si la condition est vraie
+ *   @@deny('action', condition)   -> Refuse si la condition est vraie
+ *   Actions : 'create', 'read', 'update', 'delete', 'all'
+ *
+ * @see https://zenstack.dev/docs/reference/zmodel-language
+ */
+
+// TODO: Phase 2 — Ajouter les access policies apres la mise en place de l'auth
+// Pour l'instant, le schema est un placeholder.
+// Les policies seront definies progressivement a chaque phase :
+//   - Phase 2 : User (read/update own profile)
+//   - Phase 3 : StylistProfile, PortfolioImage, ServiceCategory
+//   - Phase 5 : Booking, Availability
+//   - Phase 6 : Payment
+//   - Phase 7 : Message, Conversation
