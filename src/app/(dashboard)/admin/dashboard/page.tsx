@@ -18,10 +18,15 @@ import { getSession } from "@/shared/lib/auth/get-session"
 export default async function AdminDashboardPage() {
   const session = await getSession()
 
+  // Verification de l'authentification
+  if (!session) {
+    redirect("/connexion")
+  }
+
   // Verification du role : seuls les admins peuvent acceder
-  if (session?.user.role !== "ADMIN") {
+  if (session.user.role !== "ADMIN") {
     // Rediriger vers l'espace correspondant au role
-    if (session?.user.role === "STYLIST") {
+    if (session.user.role === "STYLIST") {
       redirect("/coiffeuse/dashboard")
     }
     redirect("/client")

@@ -25,18 +25,23 @@ import { Calendar, Clock, ArrowRight, User, Search } from "lucide-react"
 export default async function ClientDashboardPage() {
   const session = await getSession()
 
+  // Verification de l'authentification
+  if (!session) {
+    redirect("/connexion")
+  }
+
   // Verification du role : seules les clientes peuvent acceder a cette page
-  if (session?.user.role === "STYLIST") {
+  if (session.user.role === "STYLIST") {
     redirect("/coiffeuse/dashboard")
   }
-  if (session?.user.role === "ADMIN") {
+  if (session.user.role === "ADMIN") {
     redirect("/admin/dashboard")
   }
 
   // Charger les prochaines reservations (non annulees, date >= aujourd'hui)
   const upcomingBookings = await db.booking.findMany({
     where: {
-      clientId: session!.user.id,
+      clientId: session.user.id,
       status: { in: ["PENDING", "CONFIRMED", "IN_PROGRESS"] },
       date: { gte: new Date() },
     },
@@ -56,7 +61,7 @@ export default async function ClientDashboardPage() {
     <div className="container mx-auto px-4 py-8 space-y-8">
       <div>
         <h1 className="text-2xl font-bold">
-          Bonjour {session?.user.firstName ?? session?.user.name} !
+          Bonjour {session.user.firstName ?? session.user.name} !
         </h1>
         <p className="mt-1 text-muted-foreground">
           Bienvenue dans votre espace cliente.

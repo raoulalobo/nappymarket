@@ -26,17 +26,22 @@ import { Calendar, Clock, ArrowRight, User } from "lucide-react"
 export default async function StylistDashboardPage() {
   const session = await getSession()
 
+  // Verification de l'authentification
+  if (!session) {
+    redirect("/connexion")
+  }
+
   // Verification du role : seules les coiffeuses peuvent acceder
-  if (session?.user.role === "CLIENT") {
+  if (session.user.role === "CLIENT") {
     redirect("/client")
   }
-  if (session?.user.role === "ADMIN") {
+  if (session.user.role === "ADMIN") {
     redirect("/admin/dashboard")
   }
 
   // Charger le profil coiffeuse pour obtenir l'ID
   const profile = await db.stylistProfile.findUnique({
-    where: { userId: session!.user.id },
+    where: { userId: session.user.id },
     select: { id: true },
   })
 
@@ -64,7 +69,7 @@ export default async function StylistDashboardPage() {
     <div className="container mx-auto px-4 py-8 space-y-8">
       <div>
         <h1 className="text-2xl font-bold">
-          Bonjour {session?.user.firstName ?? session?.user.name} !
+          Bonjour {session.user.firstName ?? session.user.name} !
         </h1>
         <p className="mt-1 text-muted-foreground">
           Bienvenue dans votre espace coiffeuse.

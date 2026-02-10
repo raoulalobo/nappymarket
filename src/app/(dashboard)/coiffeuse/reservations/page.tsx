@@ -23,11 +23,16 @@ export const metadata: Metadata = {
 export default async function StylistReservationsPage() {
   const session = await getSession()
 
+  // Verification de l'authentification
+  if (!session) {
+    redirect("/connexion")
+  }
+
   // Verification du role : seules les coiffeuses peuvent acceder
-  if (session?.user.role === "CLIENT") {
+  if (session.user.role === "CLIENT") {
     redirect("/client")
   }
-  if (session?.user.role === "ADMIN") {
+  if (session.user.role === "ADMIN") {
     redirect("/admin/dashboard")
   }
 
