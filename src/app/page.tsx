@@ -6,6 +6,11 @@
  *        titre, la SearchBar et les badges de confiance), suivie d'une
  *        grille de categories de coiffures.
  *
+ * Rotation curatee : a chaque chargement, 6 images sont selectionnees
+ *        aleatoirement depuis un pool de ~20 images curatees (luminosite,
+ *        sujet feminin, fond adapte). La page est deja dynamique (appel
+ *        BDD pour les categories), donc pas de regression SSG.
+ *
  * Interactions :
  *   - Accessible a tous les visiteurs (pas besoin d'auth)
  *   - HeroSearchBar redirige vers /recherche?city=X&lat=Y&lng=Z
@@ -36,39 +41,63 @@ import { APP_NAME } from "@/shared/lib/constants"
 import { HeroSearchBar } from "@/modules/search/components/HeroSearchBar"
 import { getActiveCategories } from "@/modules/search/actions/search-actions"
 
+/* ------------------------------------------------------------------ */
+/* Pool curate d'images pour le hero Bento Grid                        */
+/*                                                                      */
+/* Criteres d'inclusion :                                               */
+/*   - Sujet feminin (public cible : coiffeuses / clientes)            */
+/*   - Luminosite suffisante (pas de fonds noirs ou N&B)               */
+/*   - Pas de marques visibles (logos, vetements branded)              */
+/*   - Bonne composition en object-cover (cadrage portrait/carre)      */
+/*                                                                      */
+/* Chaque objet contient src + alt descriptif (accessibilite)          */
+/* ------------------------------------------------------------------ */
+
+/** Type d'une image du pool hero */
+interface HeroImage {
+  src: string
+  alt: string
+}
+
+/** Pool de ~20 images curatees parmi lesquelles 6 sont tirees au sort */
+const HERO_IMAGE_POOL: HeroImage[] = [
+  { src: "/images/good-faces-3yvAe5gJ-SI-unsplash.jpg", alt: "Femme avec de longues box braids" },
+  { src: "/images/ufoma-ojo-tzRdo5uBPvw-unsplash.jpg", alt: "Femme souriante avec des tresses colorees" },
+  { src: "/images/dwayne-joe-iJmMxExrGEQ-unsplash.jpg", alt: "Profil elegant avec nattes et boucles" },
+  { src: "/images/jabari-timothy-XD5E3HyLciE-unsplash.jpg", alt: "Femme avec des locs dans un cadre naturel" },
+  { src: "/images/mohamed-b-3C6-qBvyzOY-unsplash.jpg", alt: "Mains en train de tresser des cheveux" },
+  { src: "/images/michael-kyule-zjHAWfuN58w-unsplash.jpg", alt: "Femme avec un afro rouge cuivre" },
+  { src: "/images/theresa-ude-pbZwlHWHaQk-unsplash.jpg", alt: "Portrait elegant avec headwrap et locs" },
+  { src: "/images/derrick-payton-9eq4KD3I4uw-unsplash.jpg", alt: "Femme avec des cheveux bleu-gris" },
+  { src: "/images/moa-kiraly-q7MdLR_dh9I-unsplash.jpg", alt: "Femme de profil avec headwrap africain" },
+  { src: "/images/ondre-justus-FzBLZCC-Ojw-unsplash.jpg", alt: "Femme avec des tresses dorees en lumiere chaude" },
+  { src: "/images/stephen-tettey-atsu-T3IXYPEE2L4-unsplash.jpg", alt: "Femme avec des locs face a l'ocean" },
+  { src: "/images/batakane-pictures-yr72XCA1sHE-unsplash.jpg", alt: "Femme avec des tresses violettes et tenue wax" },
+  { src: "/images/dwayne-joe-3_gYOxFzOVc-unsplash.jpg", alt: "Femme avec des cornrows ornees de coquillages" },
+  { src: "/images/salem-IMmJbrwmp8M-unsplash.jpg", alt: "Femme avec des tresses bleues" },
+  { src: "/images/precious-madubuike-QguoDDRIeME-unsplash.jpg", alt: "Femme avec des locs vue de dos" },
+  { src: "/images/dare-artworks-9lxOydnFLcU-unsplash.jpg", alt: "Gros plan sur des tresses colorees" },
+  { src: "/images/lina-bentanch-1G7JHGRYgTI-unsplash.jpg", alt: "Femme avec des boucles violettes" },
+  { src: "/images/danielle-claude-belanger-64r74ffbFps-unsplash.jpg", alt: "Gros plan de tresses geometriques" },
+  { src: "/images/shawn-fields-Fkc1UP9s-VU-unsplash.jpg", alt: "Femme avec un afro bleu-vert" },
+  { src: "/images/jabari-timothy-xDgL1iT2kQY-unsplash.jpg", alt: "Femme avec des locs en cadre naturel" },
+  { src: "/images/ufoma-ojo-cAYj4XXWD1U-unsplash.jpg", alt: "Femme avec des tresses violet et rose" },
+]
+
 /**
- * Images du hero Bento Grid — 6 styles de coiffure afro differents
- * pour montrer la diversite des prestations disponibles.
+ * pickRandom — Selectionne `count` elements aleatoires sans doublons
  *
- * Ordre : [tall-left, top-center-left, top-center-right,
- *          tall-right, bottom-center-left, bottom-center-right]
+ * Utilise le melange de Fisher-Yates pour une distribution uniforme.
+ * Appele cote serveur a chaque requete (Server Component).
  */
-const HERO_IMAGES = [
-  {
-    src: "/images/good-faces-3yvAe5gJ-SI-unsplash.jpg",
-    alt: "Femme avec de longues box braids",
-  },
-  {
-    src: "/images/ufoma-ojo-tzRdo5uBPvw-unsplash.jpg",
-    alt: "Femme souriante avec des tresses colorees",
-  },
-  {
-    src: "/images/dwayne-joe-iJmMxExrGEQ-unsplash.jpg",
-    alt: "Profil elegant avec nattes et boucles",
-  },
-  {
-    src: "/images/jabari-timothy-XD5E3HyLciE-unsplash.jpg",
-    alt: "Femme avec des locs dans un cadre naturel",
-  },
-  {
-    src: "/images/mohamed-b-3C6-qBvyzOY-unsplash.jpg",
-    alt: "Mains en train de tresser des cheveux",
-  },
-  {
-    src: "/images/michael-kyule-zjHAWfuN58w-unsplash.jpg",
-    alt: "Femme avec un afro rouge cuivre",
-  },
-] as const
+function pickRandom<T>(pool: T[], count: number): T[] {
+  const copy = [...pool]
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[copy[i], copy[j]] = [copy[j], copy[i]]
+  }
+  return copy.slice(0, count)
+}
 
 /** Badges de confiance affiches sous la SearchBar */
 const TRUST_BADGES = [
@@ -82,6 +111,9 @@ export default async function HomePage() {
   const categoriesResult = await getActiveCategories()
   const categories = categoriesResult.success ? categoriesResult.data : []
 
+  /* Selectionner 6 images aleatoires depuis le pool curate */
+  const heroImages = pickRandom(HERO_IMAGE_POOL, 6)
+
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
@@ -89,6 +121,7 @@ export default async function HomePage() {
       <main className="flex-1">
         {/* ========================================================= */}
         {/* Hero Section — Bento Grid + overlay frosted glass          */}
+        {/* Images selectionnees aleatoirement a chaque requete        */}
         {/* ========================================================= */}
         <section className="relative overflow-hidden">
 
@@ -100,8 +133,8 @@ export default async function HomePage() {
             {/* Image 1 — tall gauche (portrait, 2 lignes sur desktop) */}
             <div className="relative overflow-hidden rounded-xl md:col-start-1 md:row-start-1 md:row-span-2 md:rounded-2xl">
               <Image
-                src={HERO_IMAGES[0].src}
-                alt={HERO_IMAGES[0].alt}
+                src={heroImages[0].src}
+                alt={heroImages[0].alt}
                 fill
                 sizes="(max-width: 768px) 50vw, 25vw"
                 priority
@@ -112,8 +145,8 @@ export default async function HomePage() {
             {/* Image 2 — haut centre-gauche */}
             <div className="relative overflow-hidden rounded-xl md:col-start-2 md:row-start-1 md:rounded-2xl">
               <Image
-                src={HERO_IMAGES[1].src}
-                alt={HERO_IMAGES[1].alt}
+                src={heroImages[1].src}
+                alt={heroImages[1].alt}
                 fill
                 sizes="(max-width: 768px) 50vw, 25vw"
                 priority
@@ -124,8 +157,8 @@ export default async function HomePage() {
             {/* Image 3 — haut centre-droite */}
             <div className="relative overflow-hidden rounded-xl md:col-start-3 md:row-start-1 md:rounded-2xl">
               <Image
-                src={HERO_IMAGES[2].src}
-                alt={HERO_IMAGES[2].alt}
+                src={heroImages[2].src}
+                alt={heroImages[2].alt}
                 fill
                 sizes="(max-width: 768px) 50vw, 25vw"
                 priority
@@ -136,8 +169,8 @@ export default async function HomePage() {
             {/* Image 4 — tall droite (masquee sur mobile, 2 lignes desktop) */}
             <div className="relative hidden overflow-hidden md:block md:col-start-4 md:row-start-1 md:row-span-2 md:rounded-2xl">
               <Image
-                src={HERO_IMAGES[3].src}
-                alt={HERO_IMAGES[3].alt}
+                src={heroImages[3].src}
+                alt={heroImages[3].alt}
                 fill
                 sizes="25vw"
                 className="object-cover"
@@ -147,8 +180,8 @@ export default async function HomePage() {
             {/* Image 5 — bas centre-gauche (masquee sur mobile) */}
             <div className="relative hidden overflow-hidden md:block md:col-start-2 md:row-start-2 md:rounded-2xl">
               <Image
-                src={HERO_IMAGES[4].src}
-                alt={HERO_IMAGES[4].alt}
+                src={heroImages[4].src}
+                alt={heroImages[4].alt}
                 fill
                 sizes="25vw"
                 className="object-cover"
@@ -158,8 +191,8 @@ export default async function HomePage() {
             {/* Image 6 — bas centre-droite (4e image visible sur mobile) */}
             <div className="relative overflow-hidden rounded-xl md:col-start-3 md:row-start-2 md:rounded-2xl">
               <Image
-                src={HERO_IMAGES[5].src}
-                alt={HERO_IMAGES[5].alt}
+                src={heroImages[5].src}
+                alt={heroImages[5].alt}
                 fill
                 sizes="(max-width: 768px) 50vw, 25vw"
                 className="object-cover"
