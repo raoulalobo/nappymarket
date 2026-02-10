@@ -14,8 +14,12 @@
  * Endpoint : POST /api/upload/image
  * Body : FormData avec les champs :
  *   - file : File (image JPG, PNG ou WebP, max 5 Mo)
- *   - bucket : "avatars" | "portfolio"
+ *   - bucket : "avatars" | "portfolio" | "categories"
  *   - path : chemin de stockage (ex: "user-123/1707321600000-a1b2c3.jpg")
+ *
+ * Securite par bucket :
+ *   - "avatars" / "portfolio" : le chemin doit commencer par l'ID utilisateur
+ *   - "categories" : reserve aux ADMIN, pas de contrainte userId dans le chemin
  *
  * Reponse succes : { url: string }
  * Reponse erreur : { error: string }
@@ -89,13 +93,26 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 7. Verifier que le chemin commence par l'ID utilisateur (securite)
-    //    Empeche un utilisateur d'ecrire dans le dossier d'un autre
-    if (!path.startsWith(session.user.id + "/")) {
-      return NextResponse.json(
-        { error: "Chemin de stockage invalide. Doit commencer par votre ID utilisateur." },
-        { status: 403 }
-      )
+    // 7. Verification de securite par bucket
+    //    - "categories" : reserve aux admins, pas de contrainte de chemin userId
+    //    - Autres buckets : le chemin doit commencer par l'ID utilisateur
+    if (bucket === STORAGE_BUCKETS.CATEGORIES) {
+      // Le bucket categories est reserve aux administrateurs
+      if (session.user.role !== "ADMIN") {
+        return NextResponse.json(
+          { error: "Acces reserve aux administrateurs." },
+          { status: 403 }
+        )
+      }
+    } else {
+      // Pour avatars et portfolio, le chemin doit commencer par l'ID utilisateur
+      // Empeche un utilisateur d'ecrire dans le dossier d'un autre
+      if (!path.startsWith(session.user.id + "/")) {
+        return NextResponse.json(
+          { error: "Chemin de stockage invalide. Doit commencer par votre ID utilisateur." },
+          { status: 403 }
+        )
+      }
     }
 
     // 8. Lire les variables d'environnement pour l'API REST Supabase

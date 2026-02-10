@@ -100,7 +100,7 @@ export function useCreateCategory() {
      * Appelle la server action createCategory
      * @param data - { name: string, description?: string }
      */
-    mutationFn: async (data: { name: string; description?: string }) => {
+    mutationFn: async (data: { name: string; description?: string; imageUrl?: string }) => {
       const result = await createCategory(data)
       if (!result.success) throw new Error(result.error)
       return result.data
@@ -148,7 +148,7 @@ export function useUpdateCategory() {
      */
     mutationFn: async (params: {
       id: string
-      input: { name?: string; description?: string; isActive?: boolean }
+      input: { name?: string; description?: string; isActive?: boolean; imageUrl?: string | null }
     }) => {
       const result = await updateCategory(params.id, params.input)
       if (!result.success) throw new Error(result.error)

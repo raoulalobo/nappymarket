@@ -88,6 +88,7 @@ export async function getCategories(): Promise<ActionResult<ServiceCategory[]>> 
  * @param input - Objet contenant le nom et la description optionnelle
  * @param input.name - Nom unique de la categorie (ex: "Tresses africaines")
  * @param input.description - Description optionnelle (ex: "Box braids, cornrows, etc.")
+ * @param input.imageUrl - URL de l'image de la categorie (optionnelle, via Supabase Storage)
  *
  * Exemple :
  *   const result = await createCategory({
@@ -98,12 +99,12 @@ export async function getCategories(): Promise<ActionResult<ServiceCategory[]>> 
  *   // result.success === false => result.error contient le message
  */
 export async function createCategory(
-  input: { name: string; description?: string }
+  input: { name: string; description?: string; imageUrl?: string }
 ): Promise<ActionResult<ServiceCategory>> {
   const error = await verifyAdmin()
   if (error) return error
 
-  const { name, description } = input
+  const { name, description, imageUrl } = input
 
   // Verifier l'unicite du nom (la contrainte @unique existe en BDD,
   // mais on prefere retourner un message clair plutot qu'une erreur Prisma)
@@ -120,6 +121,7 @@ export async function createCategory(
     data: {
       name,
       description: description || null,
+      imageUrl: imageUrl || null,
     },
   })
 
@@ -138,6 +140,7 @@ export async function createCategory(
  * @param input.name - Nouveau nom (optionnel)
  * @param input.description - Nouvelle description (optionnel)
  * @param input.isActive - Nouveau statut actif/inactif (optionnel)
+ * @param input.imageUrl - Nouvelle URL image (optionnel, null pour supprimer)
  *
  * Exemple (desactiver une categorie) :
  *   await updateCategory("cat-id", { isActive: false })
@@ -147,7 +150,7 @@ export async function createCategory(
  */
 export async function updateCategory(
   id: string,
-  input: { name?: string; description?: string; isActive?: boolean }
+  input: { name?: string; description?: string; isActive?: boolean; imageUrl?: string | null }
 ): Promise<ActionResult<ServiceCategory>> {
   const error = await verifyAdmin()
   if (error) return error
@@ -179,6 +182,7 @@ export async function updateCategory(
       ...(input.name !== undefined && { name: input.name }),
       ...(input.description !== undefined && { description: input.description }),
       ...(input.isActive !== undefined && { isActive: input.isActive }),
+      ...(input.imageUrl !== undefined && { imageUrl: input.imageUrl }),
     },
   })
 

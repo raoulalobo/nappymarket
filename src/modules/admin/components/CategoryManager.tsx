@@ -11,6 +11,7 @@
  *   - useUpdateCategory()   : modifie une categorie existante (nom, description, statut)
  *   - useDeleteCategory()   : supprime une categorie apres confirmation
  *   - React Hook Form       : gestion du formulaire du dialog (creation / edition)
+ *   - ImageUpload            : upload d'image vers Supabase Storage (bucket "categories")
  *   - Dialog shadcn/ui      : formulaire d'ajout/edition en modale
  *   - AlertDialog shadcn/ui : confirmation avant suppression
  *
@@ -23,7 +24,10 @@
 
 import { useState, useCallback } from "react"
 import { useForm } from "react-hook-form"
-import { Loader2, Plus, Pencil, Trash2 } from "lucide-react"
+import { Loader2, Plus, Pencil, Trash2, ImageIcon } from "lucide-react"
+
+// --- Composant d'upload d'image reutilisable ---
+import { ImageUpload } from "@/shared/components/common/ImageUpload"
 
 // --- Hooks admin pour les operations CRUD sur les categories ---
 import {
@@ -132,6 +136,9 @@ export function CategoryManager() {
     categoryId: null,
   })
 
+  // --- URL de l'image de la categorie (stockee apres upload via ImageUpload) ---
+  const [imageUrl, setImageUrl] = useState<string | null>(null)
+
   // --- Etat du dialog de confirmation de suppression ---
   const [deleteTarget, setDeleteTarget] = useState<{
     open: boolean
@@ -148,16 +155,18 @@ export function CategoryManager() {
   // --- Ouvrir le dialog en mode "creation" ---
   const openCreateDialog = useCallback(() => {
     form.reset({ name: "", description: "" })
+    setImageUrl(null)
     setDialogState({ open: true, mode: "create", categoryId: null })
   }, [form])
 
   // --- Ouvrir le dialog en mode "edition" avec les valeurs pre-remplies ---
   const openEditDialog = useCallback(
-    (category: { id: string; name: string; description?: string | null }) => {
+    (category: { id: string; name: string; description?: string | null; imageUrl?: string | null }) => {
       form.reset({
         name: category.name,
         description: category.description ?? "",
       })
+      setImageUrl(category.imageUrl ?? null)
       setDialogState({ open: true, mode: "edit", categoryId: category.id })
     },
     [form]
@@ -167,30 +176,33 @@ export function CategoryManager() {
   const closeDialog = useCallback(() => {
     setDialogState({ open: false, mode: "create", categoryId: null })
     form.reset({ name: "", description: "" })
+    setImageUrl(null)
   }, [form])
 
   // --- Soumission du formulaire (creation ou edition) ---
   const onSubmit = useCallback(
     async (data: CategoryFormValues) => {
       if (dialogState.mode === "create") {
-        // Creation d'une nouvelle categorie
+        // Creation d'une nouvelle categorie (avec image optionnelle)
         await createCategory({
           name: data.name,
           description: data.description || undefined,
+          imageUrl: imageUrl || undefined,
         })
       } else if (dialogState.categoryId) {
-        // Mise a jour d'une categorie existante
+        // Mise a jour d'une categorie existante (imageUrl peut etre null pour supprimer)
         await updateCategory({
           id: dialogState.categoryId,
           input: {
             name: data.name,
             description: data.description || undefined,
+            imageUrl: imageUrl,
           },
         })
       }
       closeDialog()
     },
-    [dialogState, createCategory, updateCategory, closeDialog]
+    [dialogState, createCategory, updateCategory, closeDialog, imageUrl]
   )
 
   // --- Basculer le statut actif/inactif d'une categorie ---
@@ -279,6 +291,7 @@ export function CategoryManager() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-16">Image</TableHead>
                   <TableHead>Nom</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead>Statut</TableHead>
@@ -288,6 +301,21 @@ export function CategoryManager() {
               <TableBody>
                 {categories.map((category) => (
                   <TableRow key={category.id}>
+                    {/* Colonne : Miniature de l'image de la categorie */}
+                    <TableCell>
+                      {category.imageUrl ? (
+                        <img
+                          src={category.imageUrl}
+                          alt={category.name}
+                          className="size-10 rounded-md object-cover"
+                        />
+                      ) : (
+                        <div className="flex size-10 items-center justify-center rounded-md bg-muted">
+                          <ImageIcon className="size-4 text-muted-foreground" />
+                        </div>
+                      )}
+                    </TableCell>
+
                     {/* Colonne : Nom de la categorie */}
                     <TableCell className="font-medium">
                       {category.name}
@@ -455,6 +483,26 @@ export function CategoryManager() {
                   </FormItem>
                 )}
               />
+
+              {/* Champ : Image de la categorie (optionnel, upload vers Supabase) */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium leading-none">
+                  Image{" "}
+                  <span className="text-muted-foreground font-normal">
+                    (facultatif)
+                  </span>
+                </label>
+                <ImageUpload
+                  bucket="categories"
+                  pathPrefix="categories"
+                  currentImageUrl={imageUrl}
+                  onUploadComplete={(url) => setImageUrl(url)}
+                  label="Choisir une image"
+                  variant="rectangle"
+                  enableCrop
+                  cropAspectRatio={16 / 9}
+                />
+              </div>
 
               {/* Boutons : Annuler et Enregistrer */}
               <DialogFooter>

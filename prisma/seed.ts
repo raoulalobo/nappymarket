@@ -18,6 +18,7 @@ import path from "node:path"
 import dotenv from "dotenv"
 import { PrismaClient } from "@prisma/client"
 import { PrismaPg } from "@prisma/adapter-pg"
+import { hashPassword } from "better-auth/crypto"
 
 // Charger .env.local explicitement
 dotenv.config({ path: path.join(__dirname, "..", ".env.local") })
@@ -129,7 +130,9 @@ async function main() {
       },
     })
 
-    // Creer le compte credential avec mot de passe hashe (scrypt)
+    // Creer le compte credential avec mot de passe hashe via Better Auth
+    // IMPORTANT : utiliser hashPassword de better-auth/crypto (pas crypto natif)
+    // pour garantir la compatibilite avec la verification de Better Auth
     await prisma.account.create({
       data: {
         accountId: admin.id,
@@ -144,20 +147,6 @@ async function main() {
   }
 
   console.log("\nSeed termine.")
-}
-
-/**
- * Hash un mot de passe avec scrypt (meme algorithme que Better Auth)
- * Format : salt:derivedKey (en hexadecimal)
- */
-async function hashPassword(password: string): Promise<string> {
-  const { scrypt, randomBytes } = await import("node:crypto")
-  const { promisify } = await import("node:util")
-  const scryptAsync = promisify(scrypt)
-
-  const salt = randomBytes(16).toString("hex")
-  const derivedKey = (await scryptAsync(password, salt, 64)) as Buffer
-  return `${salt}:${derivedKey.toString("hex")}`
 }
 
 main()
