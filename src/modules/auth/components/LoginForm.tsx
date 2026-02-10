@@ -21,6 +21,7 @@ import Link from "next/link"
 import { Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { PasswordInput } from "@/shared/components/common/PasswordInput"
 import {
   Card,
   CardContent,
@@ -97,8 +98,7 @@ export function LoginForm() {
                 <FormItem>
                   <FormLabel>Mot de passe</FormLabel>
                   <FormControl>
-                    <Input
-                      type="password"
+                    <PasswordInput
                       placeholder="Votre mot de passe"
                       autoComplete="current-password"
                       {...field}

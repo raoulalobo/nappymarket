@@ -22,6 +22,7 @@ import Link from "next/link"
 import { Loader2, Scissors, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { PasswordInput } from "@/shared/components/common/PasswordInput"
 import {
   Card,
   CardContent,
@@ -202,8 +203,7 @@ export function RegisterForm() {
                 <FormItem>
                   <FormLabel>Mot de passe</FormLabel>
                   <FormControl>
-                    <Input
-                      type="password"
+                    <PasswordInput
                       placeholder="8 caracteres min., 1 majuscule, 1 chiffre"
                       autoComplete="new-password"
                       {...field}

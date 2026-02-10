@@ -19,7 +19,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Loader2, Shield } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { PasswordInput } from "@/shared/components/common/PasswordInput"
 import {
   Card,
   CardContent,
@@ -86,8 +86,7 @@ export function ChangePasswordForm() {
                 <FormItem>
                   <FormLabel>Mot de passe actuel</FormLabel>
                   <FormControl>
-                    <Input
-                      type="password"
+                    <PasswordInput
                       placeholder="Votre mot de passe actuel"
                       autoComplete="current-password"
                       {...field}
@@ -106,8 +105,7 @@ export function ChangePasswordForm() {
                 <FormItem>
                   <FormLabel>Nouveau mot de passe</FormLabel>
                   <FormControl>
-                    <Input
-                      type="password"
+                    <PasswordInput
                       placeholder="Minimum 8 caracteres"
                       autoComplete="new-password"
                       {...field}
@@ -126,8 +124,7 @@ export function ChangePasswordForm() {
                 <FormItem>
                   <FormLabel>Confirmer le nouveau mot de passe</FormLabel>
                   <FormControl>
-                    <Input
-                      type="password"
+                    <PasswordInput
                       placeholder="Retapez le nouveau mot de passe"
                       autoComplete="new-password"
                       {...field}

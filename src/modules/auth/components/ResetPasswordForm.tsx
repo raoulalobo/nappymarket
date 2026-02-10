@@ -21,7 +21,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import Link from "next/link"
 import { Loader2, ArrowLeft, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { PasswordInput } from "@/shared/components/common/PasswordInput"
 import {
   Card,
   CardContent,
@@ -113,8 +113,7 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
                 <FormItem>
                   <FormLabel>Nouveau mot de passe</FormLabel>
                   <FormControl>
-                    <Input
-                      type="password"
+                    <PasswordInput
                       placeholder="Minimum 8 caracteres"
                       autoComplete="new-password"
                       {...field}
@@ -133,8 +132,7 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
                 <FormItem>
                   <FormLabel>Confirmer le mot de passe</FormLabel>
                   <FormControl>
-                    <Input
-                      type="password"
+                    <PasswordInput
                       placeholder="Retapez le mot de passe"
                       autoComplete="new-password"
                       {...field}
