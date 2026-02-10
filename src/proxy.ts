@@ -1,25 +1,29 @@
 /**
- * middleware.ts — Middleware Next.js pour la protection des routes
+ * proxy.ts — Proxy Next.js 16 pour la protection des routes (couche optimiste)
  *
- * Role : Intercepter les requetes vers les routes protegees et verifier
- *        que l'utilisateur est authentifie. Redirige vers /connexion si
- *        la session est absente.
+ * Role : Premiere barriere de securite. Intercepte les requetes vers les
+ *        routes protegees et verifie la PRESENCE du cookie de session.
+ *        Redirige vers /connexion si le cookie est absent.
  *
  * Interactions :
  *   - S'execute avant chaque requete correspondant au matcher
- *   - Verifie la presence du cookie de session Better Auth
- *   - NE verifie PAS le role ici (fait dans les layouts de chaque espace)
- *     pour eviter les appels BDD dans le middleware Edge
- *   - Les routes publiques (/, /recherche, /coiffeuse/[id]) ne sont pas protegees
+ *   - Verifie uniquement la presence du cookie (pas d'appel BDD)
+ *   - La verification complete (session valide + role) se fait dans
+ *     les pages via le DAL (dal.ts → requireRole / verifySession)
+ *   - Les routes publiques (/, /recherche, /coiffeuse/[id]) ne sont pas concernees
+ *
+ * Architecture de protection (2 couches) :
+ *   Couche 1 → proxy.ts   : check cookie (rapide, pas de BDD)
+ *   Couche 2 → dal.ts     : check session + role (BDD, dans chaque page)
  *
  * Routes protegees :
  *   - /client/*     : espace cliente (role CLIENT)
  *   - /coiffeuse/*  : espace coiffeuse (role STYLIST) — sauf profil public
  *   - /admin/*      : espace admin (role ADMIN)
  *
- * Note : La verification du role se fait dans les layouts des espaces
- *        respectifs via getSession() (Server Component), car le middleware
- *        Edge ne peut pas faire d'appels BDD fiables.
+ * Migration Next.js 16 :
+ *   middleware.ts → proxy.ts (renommage officiel)
+ *   https://nextjs.org/docs/messages/middleware-to-proxy
  */
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
@@ -33,7 +37,7 @@ import type { NextRequest } from "next/server"
 const SESSION_COOKIE_NAME = "better-auth.session_token"
 const SECURE_SESSION_COOKIE_NAME = "__Secure-better-auth.session_token"
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Verifier la presence du cookie de session (HTTP ou HTTPS)
@@ -50,7 +54,7 @@ export function middleware(request: NextRequest) {
   }
 
   // Session presente : laisser passer (la verification du role
-  // se fait dans les layouts de chaque espace)
+  // se fait dans les pages via le DAL — requireRole())
   return NextResponse.next()
 }
 

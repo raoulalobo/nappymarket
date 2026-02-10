@@ -5,15 +5,14 @@
  *        avec les sections "A venir" et "Passees".
  *
  * Interactions :
- *   - Protegee par le middleware (cookie de session requis)
- *   - La verification du role CLIENT se fait ici
+ *   - Protegee par le proxy (cookie de session requis)
+ *   - Protegee par le DAL (requireRole verifie session + role CLIENT)
  *   - Delege l'affichage au composant ClientBookingList (client)
  *
  * Exemple d'URL : /client/reservations
  */
-import { redirect } from "next/navigation"
 import type { Metadata } from "next"
-import { getSession } from "@/shared/lib/auth/get-session"
+import { requireRole } from "@/shared/lib/auth/dal"
 import { ClientBookingList } from "@/modules/booking/components/ClientBookingList"
 
 export const metadata: Metadata = {
@@ -21,20 +20,8 @@ export const metadata: Metadata = {
 }
 
 export default async function ClientReservationsPage() {
-  const session = await getSession()
-
-  // Verification de l'authentification
-  if (!session) {
-    redirect("/connexion")
-  }
-
-  // Verification du role : seules les clientes peuvent acceder
-  if (session.user.role === "STYLIST") {
-    redirect("/coiffeuse/dashboard")
-  }
-  if (session.user.role === "ADMIN") {
-    redirect("/admin/dashboard")
-  }
+  // Verification session + role CLIENT (redirige automatiquement sinon)
+  await requireRole("CLIENT")
 
   return (
     <div className="container mx-auto px-4 py-8">

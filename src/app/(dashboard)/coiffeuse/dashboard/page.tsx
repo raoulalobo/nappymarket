@@ -5,17 +5,15 @@
  *        des dernieres reservations recues et des actions rapides.
  *
  * Interactions :
- *   - Protegee par le middleware (cookie de session requis)
- *   - Le layout dashboard verifie la session cote serveur
- *   - La verification du role STYLIST se fait ici
+ *   - Protegee par le proxy (cookie de session requis)
+ *   - Protegee par le DAL (requireRole verifie session + role STYLIST)
  *   - Charge les 5 dernieres reservations depuis la BDD
  *   - Liens rapides vers les pages de gestion (disponibilites, prestations, etc.)
  *
  * Exemple d'URL : /coiffeuse/dashboard
  */
-import { redirect } from "next/navigation"
 import Link from "next/link"
-import { getSession } from "@/shared/lib/auth/get-session"
+import { requireRole } from "@/shared/lib/auth/dal"
 import { db } from "@/shared/lib/db"
 import { BookingStatusBadge } from "@/modules/booking/components/BookingStatusBadge"
 import { formatDate, formatTime, formatPrice } from "@/shared/lib/utils"
@@ -24,20 +22,8 @@ import { Button } from "@/components/ui/button"
 import { Calendar, Clock, ArrowRight, User } from "lucide-react"
 
 export default async function StylistDashboardPage() {
-  const session = await getSession()
-
-  // Verification de l'authentification
-  if (!session) {
-    redirect("/connexion")
-  }
-
-  // Verification du role : seules les coiffeuses peuvent acceder
-  if (session.user.role === "CLIENT") {
-    redirect("/client")
-  }
-  if (session.user.role === "ADMIN") {
-    redirect("/admin/dashboard")
-  }
+  // Verification session + role STYLIST (redirige automatiquement sinon)
+  const session = await requireRole("STYLIST")
 
   // Charger le profil coiffeuse pour obtenir l'ID
   const profile = await db.stylistProfile.findUnique({

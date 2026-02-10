@@ -5,15 +5,14 @@
  *        des onglets de filtre par statut et des actions de gestion.
  *
  * Interactions :
- *   - Protegee par le middleware (cookie de session requis)
- *   - La verification du role STYLIST se fait ici
+ *   - Protegee par le proxy (cookie de session requis)
+ *   - Protegee par le DAL (requireRole verifie session + role STYLIST)
  *   - Delege l'affichage au composant StylistBookingList (client)
  *
  * Exemple d'URL : /coiffeuse/reservations
  */
-import { redirect } from "next/navigation"
 import type { Metadata } from "next"
-import { getSession } from "@/shared/lib/auth/get-session"
+import { requireRole } from "@/shared/lib/auth/dal"
 import { StylistBookingList } from "@/modules/booking/components/StylistBookingList"
 
 export const metadata: Metadata = {
@@ -21,20 +20,8 @@ export const metadata: Metadata = {
 }
 
 export default async function StylistReservationsPage() {
-  const session = await getSession()
-
-  // Verification de l'authentification
-  if (!session) {
-    redirect("/connexion")
-  }
-
-  // Verification du role : seules les coiffeuses peuvent acceder
-  if (session.user.role === "CLIENT") {
-    redirect("/client")
-  }
-  if (session.user.role === "ADMIN") {
-    redirect("/admin/dashboard")
-  }
+  // Verification session + role STYLIST (redirige automatiquement sinon)
+  await requireRole("STYLIST")
 
   return (
     <div className="container mx-auto px-4 py-8">

@@ -2,23 +2,18 @@
  * Page Catalogue Admin — /admin/catalogue
  *
  * Role : Page serveur qui rend le composant CategoryManager pour la gestion
- *        des categories de prestations. Protegee par verification de session
- *        et de role ADMIN.
+ *        des categories de prestations.
  *
  * Interactions :
- *   - getSession() : recupere la session Better Auth cote serveur via les cookies
- *   - redirect()   : redirige les utilisateurs non autorises :
- *       - Non connecte       -> /connexion
- *       - Role STYLIST        -> /coiffeuse/dashboard
- *       - Autre role (CLIENT) -> /client
+ *   - Protegee par le proxy (cookie de session requis)
+ *   - Protegee par le DAL (requireRole verifie session + role ADMIN)
  *   - CategoryManager : composant client qui gere le CRUD des categories
  *
  * Exemple d'acces :
  *   URL : /admin/catalogue
  *   Prerequis : etre connecte avec le role ADMIN
  */
-import { redirect } from "next/navigation"
-import { getSession } from "@/shared/lib/auth/get-session"
+import { requireRole } from "@/shared/lib/auth/dal"
 import { CategoryManager } from "@/modules/admin/components/CategoryManager"
 
 /**
@@ -29,22 +24,8 @@ export const metadata = {
 }
 
 export default async function AdminCataloguePage() {
-  // Recuperation de la session utilisateur cote serveur
-  const session = await getSession()
-
-  // Redirection si non connecte
-  if (!session) {
-    redirect("/connexion")
-  }
-
-  // Verification du role : seuls les admins peuvent acceder a cette page
-  if (session.user.role !== "ADMIN") {
-    // Redirection adaptee selon le role de l'utilisateur
-    if (session.user.role === "STYLIST") {
-      redirect("/coiffeuse/dashboard")
-    }
-    redirect("/client")
-  }
+  // Verification session + role ADMIN (redirige automatiquement sinon)
+  await requireRole("ADMIN")
 
   return (
     <div className="container mx-auto px-4 py-8">

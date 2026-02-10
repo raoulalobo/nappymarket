@@ -5,16 +5,14 @@
  *        des prochaines reservations et des actions rapides.
  *
  * Interactions :
- *   - Protegee par le middleware (cookie de session requis)
- *   - Le layout dashboard verifie la session cote serveur
- *   - La verification du role CLIENT se fait ici
+ *   - Protegee par le proxy (cookie de session requis)
+ *   - Protegee par le DAL (requireRole verifie session + role CLIENT)
  *   - Charge les prochaines reservations depuis la BDD
  *
  * Exemple d'URL : /client
  */
-import { redirect } from "next/navigation"
 import Link from "next/link"
-import { getSession } from "@/shared/lib/auth/get-session"
+import { requireRole } from "@/shared/lib/auth/dal"
 import { db } from "@/shared/lib/db"
 import { BookingStatusBadge } from "@/modules/booking/components/BookingStatusBadge"
 import { formatDate, formatTime, formatPrice } from "@/shared/lib/utils"
@@ -23,20 +21,8 @@ import { Button } from "@/components/ui/button"
 import { Calendar, Clock, ArrowRight, User, Search } from "lucide-react"
 
 export default async function ClientDashboardPage() {
-  const session = await getSession()
-
-  // Verification de l'authentification
-  if (!session) {
-    redirect("/connexion")
-  }
-
-  // Verification du role : seules les clientes peuvent acceder a cette page
-  if (session.user.role === "STYLIST") {
-    redirect("/coiffeuse/dashboard")
-  }
-  if (session.user.role === "ADMIN") {
-    redirect("/admin/dashboard")
-  }
+  // Verification session + role CLIENT (redirige automatiquement sinon)
+  const session = await requireRole("CLIENT")
 
   // Charger les prochaines reservations (non annulees, date >= aujourd'hui)
   const upcomingBookings = await db.booking.findMany({

@@ -2,14 +2,11 @@
  * Page Prestations Coiffeuse — /coiffeuse/prestations
  *
  * Role : Afficher l'interface de gestion des prestations (services)
- *        proposes par la coiffeuse. Page serveur qui verifie
- *        l'authentification et le role avant de rendre le composant
- *        client ServiceSelector.
+ *        proposes par la coiffeuse.
  *
  * Interactions :
- *   - Protegee par le layout dashboard (verifie la session)
- *   - Verifie le role STYLIST : redirige CLIENT vers /client,
- *     ADMIN vers /admin/dashboard
+ *   - Protegee par le proxy (cookie de session requis)
+ *   - Protegee par le DAL (requireRole verifie session + role STYLIST)
  *   - Rend le composant client ServiceSelector qui gere la selection
  *     des categories, l'ajout de prix/duree et la suppression de services
  *
@@ -17,8 +14,7 @@
  *   URL : /coiffeuse/prestations
  *   Accessible uniquement par un utilisateur avec le role STYLIST
  */
-import { redirect } from "next/navigation"
-import { getSession } from "@/shared/lib/auth/get-session"
+import { requireRole } from "@/shared/lib/auth/dal"
 import ServiceSelector from "@/modules/stylist/components/ServiceSelector"
 
 /** Metadata de la page pour le SEO et l'onglet navigateur */
@@ -27,40 +23,8 @@ export const metadata = {
 }
 
 export default async function StylistServicesPage() {
-  /* ------------------------------------------------------------------ */
-  /* Verification de la session et du role                              */
-  /* ------------------------------------------------------------------ */
-
-  const session = await getSession()
-
-  /**
-   * Si pas de session (cookie expire ou absent), rediriger vers connexion.
-   * Note : le layout dashboard fait deja cette verification, mais on la
-   * double ici par securite (defense en profondeur).
-   */
-  if (!session) {
-    redirect("/connexion")
-  }
-
-  /**
-   * Si l'utilisateur est un CLIENT, il n'a pas acces a l'espace coiffeuse.
-   * On le redirige vers son propre dashboard.
-   */
-  if (session.user.role === "CLIENT") {
-    redirect("/client")
-  }
-
-  /**
-   * Si l'utilisateur est un ADMIN, le rediriger vers son dashboard.
-   * Les admins gerent les categories, pas les prestations individuelles.
-   */
-  if (session.user.role === "ADMIN") {
-    redirect("/admin/dashboard")
-  }
-
-  /* ------------------------------------------------------------------ */
-  /* Rendu de la page                                                   */
-  /* ------------------------------------------------------------------ */
+  // Verification session + role STYLIST (redirige automatiquement sinon)
+  await requireRole("STYLIST")
 
   return (
     <div className="container mx-auto px-4 py-8">
