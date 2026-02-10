@@ -108,6 +108,16 @@ export function LoginForm() {
                 </FormItem>
               )}
             />
+
+            {/* Lien mot de passe oublie */}
+            <div className="text-right">
+              <Link
+                href="/mot-de-passe-oublie"
+                className="text-sm text-primary hover:underline"
+              >
+                Mot de passe oublie ?
+              </Link>
+            </div>
           </CardContent>
 
           <CardFooter className="flex flex-col gap-4">

@@ -18,6 +18,7 @@
 import { betterAuth } from "better-auth"
 import { prismaAdapter } from "better-auth/adapters/prisma"
 import { db } from "@/shared/lib/db"
+import { sendPasswordResetEmail } from "@/shared/lib/email/send-email"
 
 export const auth = betterAuth({
   // Adaptateur Prisma pour stocker users, sessions, accounts dans Supabase
@@ -30,6 +31,11 @@ export const auth = betterAuth({
     enabled: true,
     // Longueur minimale du mot de passe (8 caracteres)
     minPasswordLength: 8,
+    // Callback appele par Better Auth quand un utilisateur demande un reset password.
+    // Better Auth genere le token + l'URL automatiquement, on envoie l'email via Resend.
+    sendResetPassword: async ({ user, url }) => {
+      await sendPasswordResetEmail(user.email, url)
+    },
   },
 
   // Champs additionnels sur le modele User

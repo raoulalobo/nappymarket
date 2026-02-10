@@ -19,6 +19,7 @@
 import { redirect } from "next/navigation"
 import { getSession } from "@/shared/lib/auth/get-session"
 import { StylistProfileForm } from "@/modules/stylist/components/StylistProfileForm"
+import { ChangePasswordForm } from "@/modules/auth/components/ChangePasswordForm"
 
 /** Metadata de la page pour le SEO et l'onglet navigateur */
 export const metadata = {
@@ -62,8 +63,11 @@ export default async function StylistProfilePage() {
   /* ------------------------------------------------------------------ */
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 space-y-8">
       <StylistProfileForm />
+
+      {/* Section securite : changement de mot de passe */}
+      <ChangePasswordForm />
     </div>
   )
 }

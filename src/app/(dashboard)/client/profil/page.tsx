@@ -16,6 +16,7 @@
 import { redirect } from "next/navigation"
 import { getSession } from "@/shared/lib/auth/get-session"
 import { ClientProfileForm } from "@/modules/auth/components/ClientProfileForm"
+import { ChangePasswordForm } from "@/modules/auth/components/ChangePasswordForm"
 import type { Metadata } from "next"
 
 /**
@@ -53,9 +54,12 @@ export default async function ClientProfilPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 space-y-8">
       {/* Formulaire de profil cliente (composant client) */}
       <ClientProfileForm />
+
+      {/* Section securite : changement de mot de passe */}
+      <ChangePasswordForm />
     </div>
   )
 }
