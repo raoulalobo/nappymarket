@@ -69,6 +69,8 @@ export const config = {
     "/coiffeuse/reservations/:path*",
     "/coiffeuse/messages/:path*",
     "/coiffeuse/profil/:path*",
+    // Flow de reservation (route publique mais protegee — session requise)
+    "/coiffeuse/:id/reserver",
     // Espace admin
     "/admin/:path*",
   ],

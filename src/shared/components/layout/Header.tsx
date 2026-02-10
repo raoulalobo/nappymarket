@@ -33,6 +33,12 @@ export function Header() {
           >
             Trouver une coiffeuse
           </Link>
+          <Link
+            href="/inscription"
+            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Devenir coiffeuse
+          </Link>
         </nav>
 
         {/* Menu utilisateur (connecte: dropdown, deconnecte: boutons auth) */}

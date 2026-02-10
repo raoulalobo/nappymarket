@@ -71,7 +71,6 @@ export const NAVIGATION_ITEMS: Record<"CLIENT" | "STYLIST" | "ADMIN", NavItem[]>
       label: "Reservations",
       href: "/client/reservations",
       icon: Calendar,
-      disabled: true, // Phase 5
     },
     {
       label: "Messages",
@@ -106,13 +105,11 @@ export const NAVIGATION_ITEMS: Record<"CLIENT" | "STYLIST" | "ADMIN", NavItem[]>
       label: "Disponibilites",
       href: "/coiffeuse/disponibilites",
       icon: Clock,
-      disabled: true, // Phase 5
     },
     {
       label: "Reservations",
       href: "/coiffeuse/reservations",
       icon: Calendar,
-      disabled: true, // Phase 5
     },
     {
       label: "Messages",

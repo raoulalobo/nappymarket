@@ -44,9 +44,6 @@ export default async function HomePage() {
           {/* Barre de recherche hero : saisir une ville pour lancer la recherche */}
           <HeroSearchBar />
 
-          <Button size="lg" variant="outline" asChild>
-            <Link href="/inscription">Devenir coiffeuse</Link>
-          </Button>
         </section>
 
         {/* Section categories de coiffures */}

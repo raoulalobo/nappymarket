@@ -38,3 +38,45 @@ export const MAX_SERVICE_DURATION_MINUTES = 480
 
 /** Nombre de resultats de recherche par page */
 export const SEARCH_RESULTS_PER_PAGE = 12
+
+/* ------------------------------------------------------------------ */
+/* Phase 5 — Disponibilites & Reservation                              */
+/* ------------------------------------------------------------------ */
+
+/** Delai minimum avant une prestation en heures (ex: 24 = min 24h avant) */
+export const MIN_BOOKING_LEAD_TIME_HOURS = 24
+
+/** Nombre maximum de jours a l'avance pour reserver (60 jours) */
+export const MAX_BOOKING_ADVANCE_DAYS = 60
+
+/** Granularite des creneaux de disponibilite en minutes (30 min) */
+export const BOOKING_SLOT_INTERVAL_MINUTES = 30
+
+/**
+ * Noms des jours de la semaine en francais.
+ * Index 0 = Dimanche, 1 = Lundi, ..., 6 = Samedi
+ * (alignes sur Date.getDay() et le champ dayOfWeek du schema Prisma)
+ */
+export const DAYS_OF_WEEK_FR = [
+  "Dimanche",
+  "Lundi",
+  "Mardi",
+  "Mercredi",
+  "Jeudi",
+  "Vendredi",
+  "Samedi",
+] as const
+
+/**
+ * Abbreviations des jours (3 lettres) pour les affichages compacts.
+ * Index 0 = Dim, 1 = Lun, ..., 6 = Sam
+ */
+export const DAYS_OF_WEEK_SHORT_FR = [
+  "Dim",
+  "Lun",
+  "Mar",
+  "Mer",
+  "Jeu",
+  "Ven",
+  "Sam",
+] as const

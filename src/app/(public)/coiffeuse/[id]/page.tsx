@@ -272,10 +272,10 @@ export default async function StylistPublicPage({ params }: StylistPageProps) {
                 </p>
               )}
 
-              {/* Bouton CTA Reserver (placeholder, fonctionnel en Phase 5) */}
+              {/* Bouton CTA Reserver — redirige vers le flow de reservation */}
               <div className="mt-6">
                 <Button asChild size="lg">
-                  <Link href="#">
+                  <Link href={`/coiffeuse/${id}/reserver`}>
                     <Scissors className="mr-2 h-4 w-4" />
                     Reserver une prestation
                   </Link>
