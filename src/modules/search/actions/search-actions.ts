@@ -235,25 +235,53 @@ export async function searchStylists(
   }
 }
 
+/** Type enrichi d'une categorie active (utilise par la page d'accueil et les filtres) */
+export interface ActiveCategory {
+  id: string
+  name: string
+  description: string | null
+  imageUrl: string | null
+  /** Nombre de services proposes dans cette categorie */
+  serviceCount: number
+}
+
 /**
  * getActiveCategories — Recuperer les categories de services actives
  *
- * Utilisee par le composant SearchFilters pour peupler le filtre categorie.
+ * Utilisee par :
+ *   - La page d'accueil (Image Cards avec imageUrl, description, serviceCount)
+ *   - Le composant SearchFilters (utilise uniquement id et name)
+ *
  * Action publique : pas de verification d'authentification.
  *
- * @returns ActionResult<{ id: string; name: string }[]>
+ * @returns ActionResult<ActiveCategory[]>
  */
 export async function getActiveCategories(): Promise<
-  ActionResult<{ id: string; name: string }[]>
+  ActionResult<ActiveCategory[]>
 > {
   try {
     const categories = await db.serviceCategory.findMany({
       where: { isActive: true },
-      select: { id: true, name: true },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        imageUrl: true,
+        _count: { select: { services: true } },
+      },
       orderBy: { name: "asc" },
     })
 
-    return { success: true, data: categories }
+    /* Transformer _count.services en serviceCount (plus lisible) */
+    const data: ActiveCategory[] = categories.map((cat) => ({
+      id: cat.id,
+      name: cat.name,
+      description: cat.description,
+      imageUrl: cat.imageUrl,
+      serviceCount: cat._count.services,
+    }))
+
+    return { success: true, data }
   } catch (error) {
     console.error("[getActiveCategories] Erreur :", error)
     return { success: false, error: "Impossible de charger les categories" }

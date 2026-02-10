@@ -36,7 +36,6 @@ import Image from "next/image"
 import { MapPin, Scissors, Home } from "lucide-react"
 import { Header } from "@/shared/components/layout/Header"
 import { Footer } from "@/shared/components/layout/Footer"
-import { Card, CardContent } from "@/components/ui/card"
 import { APP_NAME } from "@/shared/lib/constants"
 import { HeroSearchBar } from "@/modules/search/components/HeroSearchBar"
 import { getActiveCategories } from "@/modules/search/actions/search-actions"
@@ -98,6 +97,23 @@ function pickRandom<T>(pool: T[], count: number): T[] {
   }
   return copy.slice(0, count)
 }
+
+/* ------------------------------------------------------------------ */
+/* Images fallback pour les categories sans imageUrl                   */
+/*                                                                      */
+/* Quand une categorie n'a pas d'imageUrl en BDD, on pioche dans ce   */
+/* pool cycliquement (index % pool.length) pour garantir une image.   */
+/* ------------------------------------------------------------------ */
+const CATEGORY_FALLBACK_IMAGES: string[] = [
+  "/images/good-faces-3yvAe5gJ-SI-unsplash.jpg",
+  "/images/ufoma-ojo-tzRdo5uBPvw-unsplash.jpg",
+  "/images/dwayne-joe-iJmMxExrGEQ-unsplash.jpg",
+  "/images/mohamed-b-3C6-qBvyzOY-unsplash.jpg",
+  "/images/ondre-justus-FzBLZCC-Ojw-unsplash.jpg",
+  "/images/batakane-pictures-yr72XCA1sHE-unsplash.jpg",
+  "/images/dare-artworks-9lxOydnFLcU-unsplash.jpg",
+  "/images/danielle-claude-belanger-64r74ffbFps-unsplash.jpg",
+]
 
 /** Badges de confiance affiches sous la SearchBar */
 const TRUST_BADGES = [
@@ -237,28 +253,66 @@ export default async function HomePage() {
         </section>
 
         {/* ========================================================= */}
-        {/* Section categories de coiffures                            */}
+        {/* Section categories de coiffures — Image Cards              */}
+        {/*                                                            */}
+        {/* Pattern Airbnb/Treatwell : carte image plein cadre avec    */}
+        {/* gradient overlay en bas pour le texte. Hover = scale +     */}
+        {/* ombre. Image depuis imageUrl BDD ou fallback curate.       */}
         {/* ========================================================= */}
-        <section className="bg-muted/50 px-4 py-16">
+        <section className="px-4 py-16">
           <div className="container mx-auto">
-            <h2 className="mb-8 text-center text-2xl font-bold">
-              Nos types de coiffures
-            </h2>
+            <div className="mb-10 text-center">
+              <h2 className="text-2xl font-bold tracking-tight md:text-3xl">
+                Nos types de coiffures
+              </h2>
+              <p className="mt-2 text-sm text-muted-foreground md:text-base">
+                Explorez nos categories et trouvez la coiffure qui vous correspond
+              </p>
+            </div>
 
             {categories.length > 0 ? (
               <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-                {categories.map((category) => (
-                  <Link
-                    key={category.id}
-                    href={`/recherche?categoryId=${category.id}`}
-                  >
-                    <Card className="transition-shadow hover:shadow-md">
-                      <CardContent className="flex items-center justify-center p-6 text-center">
-                        <span className="font-medium">{category.name}</span>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                ))}
+                {categories.map((category, index) => {
+                  /* Image : priorite a l'imageUrl de la BDD, sinon fallback cyclique */
+                  const imageSrc =
+                    category.imageUrl ??
+                    CATEGORY_FALLBACK_IMAGES[index % CATEGORY_FALLBACK_IMAGES.length]
+
+                  return (
+                    <Link
+                      key={category.id}
+                      href={`/recherche?categoryId=${category.id}`}
+                      className="group"
+                    >
+                      {/* Carte image rectangulaire (paysage 3:2) */}
+                      <div className="relative aspect-[3/2] overflow-hidden rounded-2xl shadow-sm transition-shadow duration-300 group-hover:shadow-lg">
+                        {/* Image de fond */}
+                        <Image
+                          src={imageSrc}
+                          alt={category.name}
+                          fill
+                          sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                          className="object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+
+                        {/* Gradient overlay : noir en bas pour lisibilite du texte */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+
+                        {/* Contenu texte positionne en bas */}
+                        <div className="absolute inset-x-0 bottom-0 p-4">
+                          <h3 className="text-base font-semibold text-white md:text-lg">
+                            {category.name}
+                          </h3>
+                          {category.serviceCount > 0 && (
+                            <p className="mt-0.5 text-xs text-white/80 md:text-sm">
+                              {category.serviceCount} prestation{category.serviceCount > 1 ? "s" : ""}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </Link>
+                  )
+                })}
               </div>
             ) : (
               <p className="text-center text-muted-foreground">
