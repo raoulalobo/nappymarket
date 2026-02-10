@@ -34,6 +34,8 @@ export const auth = betterAuth({
     // Callback appele par Better Auth quand un utilisateur demande un reset password.
     // Better Auth genere le token + l'URL automatiquement, on envoie l'email via Resend.
     sendResetPassword: async ({ user, url }) => {
+      console.info("[Auth] sendResetPassword callback declenche pour:", user.email)
+      console.info("[Auth] URL de reinitialisation generee:", url)
       await sendPasswordResetEmail(user.email, url)
     },
   },

@@ -142,22 +142,25 @@ export async function sendBookingCancellation(booking: BookingWithDetails) {
  *   await sendPasswordResetEmail("user@email.com", "https://nappymarket.store/reinitialiser-mot-de-passe?token=abc123")
  */
 export async function sendPasswordResetEmail(email: string, resetUrl: string) {
+  console.info("[Email] sendPasswordResetEmail() appelee — to:", email, "| url:", resetUrl)
+
   if (!resend) {
-    console.warn("[Email] RESEND_API_KEY non configuree, email de reinitialisation non envoye")
+    console.error("[Email] RESEND_API_KEY non configuree ! resend est null. Email de reinitialisation non envoye.")
+    console.error("[Email] RESEND_API_KEY presente:", !!process.env.RESEND_API_KEY)
     return
   }
 
   try {
     // Email avec le template React Email
-    await resend.emails.send({
+    const result = await resend.emails.send({
       from: FROM_EMAIL,
       to: email,
       subject: "Reinitialiser votre mot de passe — NappyMarket",
       react: PasswordResetEmail({ resetUrl }),
     })
 
-    console.info("[Email] Reinitialisation envoyee a", email)
+    console.info("[Email] Reinitialisation envoyee a", email, "| Resend response:", JSON.stringify(result))
   } catch (error) {
-    console.warn("[Email] Erreur envoi email reinitialisation:", error)
+    console.error("[Email] ECHEC envoi email reinitialisation:", error)
   }
 }
