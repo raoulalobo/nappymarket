@@ -44,13 +44,17 @@ import {
   XCircle,
   Search,
   Loader2,
+  Pencil,
 } from "lucide-react"
+import { EditBookingDialog } from "./EditBookingDialog"
 import type { BookingWithDetails } from "../types"
 
 export function ClientBookingList() {
   const { bookings, isLoading } = useClientBookings()
   const { updateStatus, isUpdating } = useUpdateBookingStatus()
   const [cancelBookingId, setCancelBookingId] = useState<string | null>(null)
+  // Booking actuellement en cours de modification (ouvre EditBookingDialog)
+  const [editBooking, setEditBooking] = useState<BookingWithDetails | null>(null)
 
   // Separer les reservations "a venir" et "passees"
   const upcomingStatuses = ["PENDING", "CONFIRMED", "IN_PROGRESS"]
@@ -105,6 +109,7 @@ export function ClientBookingList() {
                 key={booking.id}
                 booking={booking}
                 onCancel={() => setCancelBookingId(booking.id)}
+                onEdit={() => setEditBooking(booking)}
                 isUpdating={isUpdating}
               />
             ))}
@@ -154,6 +159,15 @@ export function ClientBookingList() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Dialog modification de date/creneau (PENDING uniquement) */}
+      {editBooking && (
+        <EditBookingDialog
+          booking={editBooking}
+          open={!!editBooking}
+          onOpenChange={(open) => !open && setEditBooking(null)}
+        />
+      )}
     </div>
   )
 }
@@ -165,12 +179,15 @@ export function ClientBookingList() {
 interface ClientBookingCardProps {
   booking: BookingWithDetails
   onCancel?: () => void
+  /** Callback pour ouvrir le dialog de modification (PENDING uniquement) */
+  onEdit?: () => void
   isUpdating: boolean
 }
 
 function ClientBookingCard({
   booking,
   onCancel,
+  onEdit,
   isUpdating,
 }: ClientBookingCardProps) {
   // Nom de la coiffeuse
@@ -226,21 +243,36 @@ function ClientBookingCard({
               {formatPrice(booking.totalPrice)}
             </span>
 
-            {/* Bouton annuler visible uniquement pour les reservations PENDING */}
-            {booking.status === "PENDING" && onCancel && (
-              <Button
-                size="sm"
-                variant="destructive"
-                onClick={onCancel}
-                disabled={isUpdating}
-              >
-                {isUpdating ? (
-                  <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <XCircle className="mr-1 h-3.5 w-3.5" />
+            {/* Boutons Modifier + Annuler visibles uniquement pour PENDING */}
+            {booking.status === "PENDING" && (
+              <div className="flex gap-2">
+                {onEdit && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={onEdit}
+                    disabled={isUpdating}
+                  >
+                    <Pencil className="mr-1 h-3.5 w-3.5" />
+                    Modifier
+                  </Button>
                 )}
-                Annuler
-              </Button>
+                {onCancel && (
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={onCancel}
+                    disabled={isUpdating}
+                  >
+                    {isUpdating ? (
+                      <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <XCircle className="mr-1 h-3.5 w-3.5" />
+                    )}
+                    Annuler
+                  </Button>
+                )}
+              </div>
             )}
           </div>
         </div>

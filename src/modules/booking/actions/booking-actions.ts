@@ -28,7 +28,7 @@
 
 import { db } from "@/shared/lib/db"
 import { getSession } from "@/shared/lib/auth/get-session"
-import { bookingSchema, type BookingSchema } from "../schemas/booking-schema"
+import { bookingSchema, type BookingSchema, updateBookingScheduleSchema } from "../schemas/booking-schema"
 import {
   BOOKING_SLOT_INTERVAL_MINUTES,
   MIN_BOOKING_LEAD_TIME_HOURS,
@@ -557,6 +557,137 @@ export async function getBookingById(
   }
 
   return { success: true, data: booking as BookingWithDetails }
+}
+
+/* ------------------------------------------------------------------ */
+/* Actions — Modification de reservation                               */
+/* ------------------------------------------------------------------ */
+
+/**
+ * updateBookingSchedule — Modifier la date et le creneau d'une reservation PENDING
+ *
+ * Permet a la cliente de changer le jour et/ou l'heure de sa reservation
+ * tant que la coiffeuse ne l'a pas encore confirmee (statut PENDING).
+ *
+ * Workflow atomique :
+ *   1. Verifier la session (role CLIENT)
+ *   2. Valider les inputs avec Zod
+ *   3. Charger le booking et verifier la propriete + statut PENDING
+ *   4. Charger le service pour calculer la duree
+ *   5. Calculer newEndTime = newStartTime + durationMinutes
+ *   6. Verifier les delais min (24h) et max (60j)
+ *   7. Transaction Prisma : re-verifier les conflits (exclure le booking courant)
+ *      puis mettre a jour date, startTime, endTime
+ *
+ * @param bookingId - ID de la reservation a modifier
+ * @param newDate - Nouvelle date au format "YYYY-MM-DD"
+ * @param newStartTime - Nouveau creneau au format "HH:mm"
+ *
+ * Exemple :
+ *   await updateBookingSchedule("booking-123", "2026-04-10", "15:00")
+ */
+export async function updateBookingSchedule(
+  bookingId: string,
+  newDate: string,
+  newStartTime: string
+): Promise<ActionResult<BookingWithDetails>> {
+  // 1. Verifier la session et le role CLIENT
+  const session = await getSession()
+  if (!session) return { success: false, error: "Non authentifie" }
+  if (session.user.role !== "CLIENT") {
+    return { success: false, error: "Seules les clientes peuvent modifier une reservation" }
+  }
+
+  // 2. Valider les inputs avec Zod
+  const parsed = updateBookingScheduleSchema.safeParse({ bookingId, date: newDate, startTime: newStartTime })
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0].message }
+  }
+
+  // 3. Charger le booking et verifier propriete + statut
+  const booking = await db.booking.findUnique({
+    where: { id: bookingId },
+    include: { service: { select: { durationMinutes: true } } },
+  })
+  if (!booking) return { success: false, error: "Reservation introuvable" }
+  if (booking.clientId !== session.user.id) {
+    return { success: false, error: "Acces non autorise" }
+  }
+  if (booking.status !== "PENDING") {
+    return { success: false, error: "Seules les reservations en attente peuvent etre modifiees" }
+  }
+
+  // 4. Calculer l'heure de fin avec la duree du service
+  const startMinutes = parseTimeToMinutes(newStartTime)
+  const endMinutes = startMinutes + booking.service.durationMinutes
+  const newEndTime = formatMinutesToTime(endMinutes)
+
+  // 5. Verifier les delais min/max (meme logique que createBooking)
+  const bookingDate = new Date(newDate + "T00:00:00")
+  const bookingDateTime = new Date(newDate + "T00:00:00")
+  bookingDateTime.setMinutes(startMinutes)
+
+  const now = new Date()
+  const minDateTime = new Date(
+    now.getTime() + MIN_BOOKING_LEAD_TIME_HOURS * 60 * 60 * 1000
+  )
+  if (bookingDateTime <= minDateTime) {
+    return {
+      success: false,
+      error: `La reservation doit etre au moins ${MIN_BOOKING_LEAD_TIME_HOURS}h a l'avance`,
+    }
+  }
+
+  const maxDate = new Date()
+  maxDate.setDate(maxDate.getDate() + MAX_BOOKING_ADVANCE_DAYS)
+  maxDate.setHours(23, 59, 59, 999)
+  if (bookingDate > maxDate) {
+    return {
+      success: false,
+      error: `La reservation ne peut pas depasser ${MAX_BOOKING_ADVANCE_DAYS} jours a l'avance`,
+    }
+  }
+
+  // 6. Transaction atomique : verifier conflit (exclure ce booking) + update
+  try {
+    const updated = await db.$transaction(async (tx) => {
+      // Verifier qu'aucune AUTRE reservation ne chevauche le nouveau creneau
+      // On exclut le booking courant de la recherche (id: { not: bookingId })
+      const conflicting = await tx.booking.findFirst({
+        where: {
+          id: { not: bookingId },
+          stylistId: booking.stylistId,
+          date: bookingDate,
+          status: { not: "CANCELLED" },
+          AND: [
+            { startTime: { lt: newEndTime } },
+            { endTime: { gt: newStartTime } },
+          ],
+        },
+      })
+
+      if (conflicting) {
+        throw new Error("Ce creneau vient d'etre reserve par quelqu'un d'autre")
+      }
+
+      // Mettre a jour la date et les horaires
+      return tx.booking.update({
+        where: { id: bookingId },
+        data: {
+          date: bookingDate,
+          startTime: newStartTime,
+          endTime: newEndTime,
+        },
+        include: BOOKING_INCLUDE,
+      })
+    })
+
+    return { success: true, data: updated as BookingWithDetails }
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Erreur lors de la modification"
+    return { success: false, error: message }
+  }
 }
 
 /* ------------------------------------------------------------------ */

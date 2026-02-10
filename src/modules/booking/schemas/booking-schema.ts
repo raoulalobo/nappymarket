@@ -84,3 +84,36 @@ export const bookingSchema = z.object({
 
 /** Type infere du schema de reservation */
 export type BookingSchema = z.infer<typeof bookingSchema>
+
+/**
+ * updateBookingScheduleSchema — Validation de la modification de date/creneau
+ *
+ * Utilise quand une cliente modifie le jour et/ou le creneau horaire
+ * d'une reservation PENDING (pas encore confirmee par la coiffeuse).
+ *
+ * Champs :
+ *   - bookingId : ID de la reservation a modifier
+ *   - date : nouvelle date (YYYY-MM-DD)
+ *   - startTime : nouveau creneau horaire (HH:mm)
+ *
+ * Exemple :
+ *   updateBookingScheduleSchema.parse({
+ *     bookingId: "cl...",
+ *     date: "2026-04-10",
+ *     startTime: "15:00",
+ *   })
+ */
+export const updateBookingScheduleSchema = z.object({
+  bookingId: z
+    .string()
+    .min(1, "L'identifiant de la reservation est requis"),
+  date: z
+    .string()
+    .regex(DATE_REGEX, "La date doit etre au format YYYY-MM-DD"),
+  startTime: z
+    .string()
+    .regex(TIME_REGEX, "L'heure doit etre au format HH:mm"),
+})
+
+/** Type infere du schema de modification de reservation */
+export type UpdateBookingScheduleSchema = z.infer<typeof updateBookingScheduleSchema>

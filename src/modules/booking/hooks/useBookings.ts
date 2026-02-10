@@ -26,9 +26,10 @@ import {
   getClientBookings,
   getStylistBookings,
   updateBookingStatus,
+  updateBookingSchedule,
   getBookingById,
 } from "../actions/booking-actions"
-import type { BookingSchema } from "../schemas/booking-schema"
+import type { BookingSchema, UpdateBookingScheduleSchema } from "../schemas/booking-schema"
 import type { BookingStatus } from "@prisma/client"
 
 /* ------------------------------------------------------------------ */
@@ -214,6 +215,46 @@ export function useUpdateBookingStatus() {
 
   return {
     updateStatus: mutation.mutateAsync,
+    isUpdating: mutation.isPending,
+  }
+}
+
+/**
+ * useUpdateBookingSchedule — Mutation pour modifier la date/heure d'une reservation PENDING
+ *
+ * Role : Envoyer la modification de creneau et invalider les caches associes.
+ *
+ * Interactions :
+ *   - Appelle la server action updateBookingSchedule
+ *   - Invalide le cache des reservations + creneaux apres succes
+ *   - Affiche un toast de confirmation ou d'erreur
+ *
+ * Exemple :
+ *   const { updateSchedule, isUpdating } = useUpdateBookingSchedule()
+ *   await updateSchedule({ bookingId: "...", date: "2026-04-10", startTime: "15:00" })
+ */
+export function useUpdateBookingSchedule() {
+  const queryClient = useQueryClient()
+
+  const mutation = useMutation({
+    mutationFn: async (data: UpdateBookingScheduleSchema) => {
+      const result = await updateBookingSchedule(data.bookingId, data.date, data.startTime)
+      if (!result.success) throw new Error(result.error)
+      return result.data
+    },
+    onSuccess: () => {
+      // Invalider le cache des reservations et des creneaux
+      queryClient.invalidateQueries({ queryKey: BOOKINGS_KEY })
+      queryClient.invalidateQueries({ queryKey: SLOTS_KEY })
+      toast.success("Reservation modifiee avec succes !")
+    },
+    onError: (error: Error) => {
+      toast.error(error.message)
+    },
+  })
+
+  return {
+    updateSchedule: mutation.mutateAsync,
     isUpdating: mutation.isPending,
   }
 }
