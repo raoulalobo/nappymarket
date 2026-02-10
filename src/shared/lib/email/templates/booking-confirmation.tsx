@@ -150,7 +150,7 @@ const container = {
 
 /** En-tete violet NappyMarket */
 const header = {
-  backgroundColor: "#7c3aed",
+  backgroundColor: "#D4956A",
   borderRadius: "8px 8px 0 0",
   padding: "24px",
   marginBottom: "24px",
@@ -183,8 +183,8 @@ const text = {
 
 /** Bloc encadre contenant les details de la reservation */
 const detailsBox = {
-  backgroundColor: "#f9f5ff",
-  borderLeft: "4px solid #7c3aed",
+  backgroundColor: "#FDF5F0",
+  borderLeft: "4px solid #D4956A",
   borderRadius: "4px",
   padding: "16px",
   marginBottom: "20px",

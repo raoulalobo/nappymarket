@@ -116,7 +116,7 @@ const container = {
 
 /** En-tete violet NappyMarket */
 const header = {
-  backgroundColor: "#7c3aed",
+  backgroundColor: "#D4956A",
   borderRadius: "8px 8px 0 0",
   padding: "24px",
   marginBottom: "24px",
@@ -164,7 +164,7 @@ const ctaSection = {
 
 /** Bouton CTA violet principal */
 const ctaButton = {
-  backgroundColor: "#7c3aed",
+  backgroundColor: "#D4956A",
   color: "#ffffff",
   padding: "14px 36px",
   borderRadius: "6px",
@@ -191,7 +191,7 @@ const fallbackLabel = {
 /** URL du lien de secours (coupure automatique) */
 const fallbackUrl = {
   fontSize: "13px",
-  color: "#7c3aed",
+  color: "#D4956A",
   wordBreak: "break-all" as const,
   margin: "0",
 }
