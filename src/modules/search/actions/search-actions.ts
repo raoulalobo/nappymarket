@@ -244,12 +244,12 @@ export async function searchStylists(
  * @returns ActionResult<{ id: string; name: string }[]>
  */
 export async function getActiveCategories(): Promise<
-  ActionResult<{ id: string; name: string }[]>
+  ActionResult<{ id: string; name: string; imageUrl: string | null }[]>
 > {
   try {
     const categories = await db.serviceCategory.findMany({
       where: { isActive: true },
-      select: { id: true, name: true },
+      select: { id: true, name: true, imageUrl: true },
       orderBy: { name: "asc" },
     })
 

@@ -11,22 +11,26 @@
  *   - Definit la langue francaise et les polices Google (Geist)
  */
 import type { Metadata } from "next"
-import { Geist, Geist_Mono } from "next/font/google"
+import { Poppins, Open_Sans } from "next/font/google"
 import { Toaster } from "@/components/ui/sonner"
 import { QueryProvider } from "@/shared/lib/query-provider"
 import { APP_NAME, APP_DESCRIPTION } from "@/shared/lib/constants"
 import "./globals.css"
 
-// Police principale sans-serif (interface)
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Police titres : Poppins — moderne, arrondie et chaleureuse
+const poppins = Poppins({
+  variable: "--font-heading",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
 })
 
-// Police monospace (code, prix)
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+// Police corps : Open Sans — lisible, professionnelle et accessible
+const openSans = Open_Sans({
+  variable: "--font-body",
   subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  display: "swap",
 })
 
 // Metadata SEO globales (surchargees par chaque page via generateMetadata)
@@ -56,7 +60,7 @@ export default function RootLayout({
   return (
     <html lang="fr" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}
+        className={`${poppins.variable} ${openSans.variable} font-sans antialiased`}
       >
         {/* QueryProvider : cache TanStack Query + DevTools en dev */}
         <QueryProvider>
