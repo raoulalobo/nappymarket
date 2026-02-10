@@ -1,32 +1,20 @@
 /**
  * AuthLayout — Layout des pages d'authentification
  *
- * Role : Fournir une mise en page centree pour les formulaires
- *        de connexion et d'inscription. Minimaliste avec le logo
- *        en haut et un lien retour vers l'accueil.
+ * Role : Wrapper minimal pour les pages auth. Le layout visuel
+ *        (Split Screen) est gere par AuthPageShell dans chaque page
+ *        pour permettre une image differente par page.
  *
  * Interactions :
- *   - Enveloppe /connexion et /inscription
+ *   - Enveloppe /connexion, /inscription, /mot-de-passe-oublie,
+ *     /reinitialiser-mot-de-passe
  *   - Pas de Header/Footer complet (experience epuree)
- *   - Lien vers l'accueil pour revenir a la navigation
+ *   - Le logo et le centrage sont geres par AuthPageShell
  */
-import Link from "next/link"
-import { APP_NAME } from "@/shared/lib/constants"
-
 export default function AuthLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  return (
-    <div className="flex min-h-screen flex-col items-center justify-center px-4 py-12">
-      {/* Logo / Nom de l'app — lien vers l'accueil */}
-      <Link href="/" className="mb-8 text-2xl font-bold tracking-tight">
-        {APP_NAME}
-      </Link>
-
-      {/* Contenu de la page auth (formulaire) */}
-      {children}
-    </div>
-  )
+  return <>{children}</>
 }

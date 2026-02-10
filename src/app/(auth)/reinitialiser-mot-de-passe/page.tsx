@@ -6,15 +6,16 @@
  *        reinitialisation est extrait des searchParams (?token=xxx).
  *
  * Interactions :
- *   - Lit le token depuis les searchParams de l'URL
+ *   - Layout Split Screen : portrait elegant a gauche, formulaire a droite
+ *   - Lit le token depuis les searchParams de l'URL (via ResetPasswordContent)
  *   - Affiche le formulaire ResetPasswordForm avec le token
- *   - Layout auth (centrage, logo)
  *   - Apres succes, redirige vers /connexion (via useAuth dans le form)
  *
  * Metadata : titre "Reinitialiser le mot de passe" dans l'onglet navigateur
  */
 import type { Metadata } from "next"
 import { Suspense } from "react"
+import { AuthPageShell } from "@/shared/components/layout/AuthPageShell"
 import { ResetPasswordContent } from "./ResetPasswordContent"
 
 export const metadata: Metadata = {
@@ -28,8 +29,13 @@ export const metadata: Metadata = {
  */
 export default function ReinitialiserMotDePassePage() {
   return (
-    <Suspense fallback={null}>
-      <ResetPasswordContent />
-    </Suspense>
+    <AuthPageShell
+      imageSrc="/images/theresa-ude-pbZwlHWHaQk-unsplash.jpg"
+      imageAlt="Portrait elegant avec headwrap et locs"
+    >
+      <Suspense fallback={null}>
+        <ResetPasswordContent />
+      </Suspense>
+    </AuthPageShell>
   )
 }

@@ -5,14 +5,15 @@
  *        en choisissant leur role (Cliente ou Coiffeuse).
  *
  * Interactions :
+ *   - Layout Split Screen : image tresses colorees a gauche, formulaire a droite
  *   - Affiche le formulaire RegisterForm
  *   - Le choix du role (CLIENT/STYLIST) determine l'espace apres inscription
  *   - Apres inscription reussie, redirige selon le role (via useAuth)
- *   - Layout auth (centrage, logo)
  *
  * Metadata : titre "Inscription" affiche dans l'onglet du navigateur
  */
 import type { Metadata } from "next"
+import { AuthPageShell } from "@/shared/components/layout/AuthPageShell"
 import { RegisterForm } from "@/modules/auth/components/RegisterForm"
 
 export const metadata: Metadata = {
@@ -22,5 +23,13 @@ export const metadata: Metadata = {
 }
 
 export default function InscriptionPage() {
-  return <RegisterForm />
+  return (
+    <AuthPageShell
+      imageSrc="/images/ufoma-ojo-cAYj4XXWD1U-unsplash.jpg"
+      imageAlt="Femme avec des tresses colorees violet et rose"
+      quote="Rejoignez la communaute NappyMarket"
+    >
+      <RegisterForm />
+    </AuthPageShell>
+  )
 }
