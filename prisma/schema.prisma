@@ -99,6 +99,7 @@ model User {
   clientProfile    ClientProfile?
   bookingsAsClient Booking[]       @relation("ClientBookings")
   sentMessages     Message[]       @relation("SentMessages")
+  reviews          Review[]        @relation("ClientReviews")
 
   @@map("users")
 }
@@ -199,6 +200,7 @@ model StylistProfile {
   services       StylistService[]
   availabilities Availability[]
   bookings       Booking[]        @relation("StylistBookings")
+  reviews        Review[]
 
   // Index composite pour les requetes de recherche geographique (Haversine)
   @@index([latitude, longitude])
@@ -347,6 +349,7 @@ model Booking {
   service  StylistService  @relation(fields: [serviceId], references: [id])
   payment  Payment?
   messages Message[]
+  review   Review?
 
   @@map("bookings")
 }
@@ -410,4 +413,32 @@ model Conversation {
 
   @@unique([clientId, stylistId, bookingId])
   @@map("conversations")
+}
+
+/// Avis d'une cliente sur une coiffeuse apres une prestation terminee
+///
+/// Interactions :
+///   - Cree par la cliente apres un booking COMPLETED (1 avis max par booking)
+///   - Affiche sur le profil public de la coiffeuse (note moyenne + liste)
+///   - Affiche dans les resultats de recherche (note moyenne compacte)
+///   - bookingId est @unique pour garantir 1 seul avis par reservation
+///
+/// Exemple : la cliente Sophie note Marie 5/5 apres des tresses africaines
+model Review {
+  id        String   @id @default(cuid())
+  bookingId String   @unique // 1 avis par reservation
+  clientId  String // Auteur de l'avis (User.id)
+  stylistId String // Coiffeuse evaluee (StylistProfile.id)
+  rating    Int // Note de 1 a 5
+  comment   String? // Commentaire optionnel (max 1000 caracteres)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  booking Booking        @relation(fields: [bookingId], references: [id])
+  client  User           @relation("ClientReviews", fields: [clientId], references: [id])
+  stylist StylistProfile @relation(fields: [stylistId], references: [id])
+
+  // Index pour charger les avis d'une coiffeuse tries par date
+  @@index([stylistId, createdAt])
+  @@map("reviews")
 }

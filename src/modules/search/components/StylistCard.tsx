@@ -21,6 +21,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { formatPrice } from "@/shared/lib/utils"
+import { AverageRating } from "@/modules/review/components/AverageRating"
 import type { SearchStylistResult } from "../types"
 
 interface StylistCardProps {
@@ -66,6 +67,15 @@ export function StylistCard({ stylist }: StylistCardProps) {
                 </Badge>
               )}
             </div>
+
+            {/* Note moyenne compacte (si au moins 1 avis) */}
+            {stylist.reviewCount > 0 && (
+              <AverageRating
+                averageRating={stylist.averageRating}
+                reviewCount={stylist.reviewCount}
+                compact
+              />
+            )}
 
             {/* Ville + distance */}
             <p className="text-sm text-muted-foreground">

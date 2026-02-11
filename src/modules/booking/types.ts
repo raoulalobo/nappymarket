@@ -43,6 +43,8 @@ export type BookingWithDetails = Booking & {
   stylist: StylistProfile & {
     user: Pick<User, "id" | "name" | "firstName" | "lastName" | "image">
   }
+  /** Avis lie (si existant) — null si pas encore note */
+  review?: { id: string; rating: number } | null
 }
 
 /**

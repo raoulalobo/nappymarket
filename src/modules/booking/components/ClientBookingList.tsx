@@ -36,6 +36,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
   Calendar,
   Clock,
   MapPin,
@@ -45,8 +51,10 @@ import {
   Search,
   Loader2,
   Pencil,
+  Star,
 } from "lucide-react"
 import { EditBookingDialog } from "./EditBookingDialog"
+import { ReviewForm } from "@/modules/review/components/ReviewForm"
 import type { BookingWithDetails } from "../types"
 
 export function ClientBookingList() {
@@ -55,6 +63,8 @@ export function ClientBookingList() {
   const [cancelBookingId, setCancelBookingId] = useState<string | null>(null)
   // Booking actuellement en cours de modification (ouvre EditBookingDialog)
   const [editBooking, setEditBooking] = useState<BookingWithDetails | null>(null)
+  // Booking pour lequel on ouvre le formulaire d'avis (Dialog ReviewForm)
+  const [reviewBookingId, setReviewBookingId] = useState<string | null>(null)
 
   // Separer les reservations "a venir" et "passees"
   const upcomingStatuses = ["PENDING", "CONFIRMED", "IN_PROGRESS"]
@@ -130,6 +140,11 @@ export function ClientBookingList() {
                 key={booking.id}
                 booking={booking}
                 isUpdating={isUpdating}
+                onReview={
+                  booking.status === "COMPLETED" && !booking.review
+                    ? () => setReviewBookingId(booking.id)
+                    : undefined
+                }
               />
             ))}
           </div>
@@ -168,6 +183,24 @@ export function ClientBookingList() {
           onOpenChange={(open) => !open && setEditBooking(null)}
         />
       )}
+
+      {/* Dialog formulaire d'avis (COMPLETED sans review) */}
+      <Dialog
+        open={!!reviewBookingId}
+        onOpenChange={(open) => !open && setReviewBookingId(null)}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Laisser un avis</DialogTitle>
+          </DialogHeader>
+          {reviewBookingId && (
+            <ReviewForm
+              bookingId={reviewBookingId}
+              onSuccess={() => setReviewBookingId(null)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
@@ -181,6 +214,8 @@ interface ClientBookingCardProps {
   onCancel?: () => void
   /** Callback pour ouvrir le dialog de modification (PENDING uniquement) */
   onEdit?: () => void
+  /** Callback pour ouvrir le formulaire d'avis (COMPLETED sans review) */
+  onReview?: () => void
   isUpdating: boolean
 }
 
@@ -188,6 +223,7 @@ function ClientBookingCard({
   booking,
   onCancel,
   onEdit,
+  onReview,
   isUpdating,
 }: ClientBookingCardProps) {
   // Nom de la coiffeuse
@@ -273,6 +309,25 @@ function ClientBookingCard({
                   </Button>
                 )}
               </div>
+            )}
+
+            {/* Bouton "Laisser un avis" ou badge "Avis publie" pour COMPLETED */}
+            {booking.status === "COMPLETED" && (
+              <>
+                {booking.review ? (
+                  // Avis deja publie : afficher la note en badge
+                  <span className="inline-flex items-center gap-1 rounded-md bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-700">
+                    <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                    Avis publie ({booking.review.rating}/5)
+                  </span>
+                ) : onReview ? (
+                  // Pas encore d'avis : bouton pour en laisser un
+                  <Button size="sm" variant="outline" onClick={onReview}>
+                    <Star className="mr-1 h-3.5 w-3.5" />
+                    Laisser un avis
+                  </Button>
+                ) : null}
+              </>
             )}
           </div>
         </div>

@@ -80,3 +80,13 @@ export const DAYS_OF_WEEK_SHORT_FR = [
   "Ven",
   "Sam",
 ] as const
+
+/* ------------------------------------------------------------------ */
+/* Avis / Reviews                                                      */
+/* ------------------------------------------------------------------ */
+
+/** Nombre d'avis par page dans les listes paginées */
+export const REVIEWS_PER_PAGE = 10
+
+/** Longueur maximale du commentaire d'un avis (caractères) */
+export const MAX_REVIEW_COMMENT_LENGTH = 1000

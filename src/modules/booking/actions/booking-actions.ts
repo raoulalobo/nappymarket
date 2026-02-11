@@ -79,6 +79,13 @@ const BOOKING_INCLUDE = {
       },
     },
   },
+  // Inclure l'avis lie (si existant) pour afficher "Avis publie" ou "Laisser un avis"
+  review: {
+    select: {
+      id: true,
+      rating: true,
+    },
+  },
 } as const
 
 /* ------------------------------------------------------------------ */

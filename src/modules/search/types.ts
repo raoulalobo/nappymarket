@@ -46,6 +46,10 @@ export interface SearchStylistResult {
   priceMax: number | null
   /** Noms des categories de services (ex: ["Tresses", "Locks"]) */
   categoryNames: string[]
+  /** Note moyenne (1.0 a 5.0), null si aucun avis */
+  averageRating: number | null
+  /** Nombre total d'avis */
+  reviewCount: number
 }
 
 /**

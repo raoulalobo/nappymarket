@@ -39,6 +39,8 @@ import {
   CardContent,
   CardHeader,
 } from "@/components/ui/card"
+import { AverageRating } from "@/modules/review/components/AverageRating"
+import { ReviewList } from "@/modules/review/components/ReviewList"
 
 /* ------------------------------------------------------------------ */
 /* Types des props (Next.js 16 : params est une Promise)              */
@@ -182,13 +184,26 @@ export default async function StylistPublicPage({ params }: StylistPageProps) {
   // Awaiter les params (Next.js 16 async params)
   const { id } = await params
 
-  // Charger le profil complet depuis la BDD
-  const profile = await getStylistProfileById(id)
+  // Charger le profil complet et la note moyenne en parallele
+  const [profile, ratingAgg] = await Promise.all([
+    getStylistProfileById(id),
+    db.review.aggregate({
+      where: { stylistId: id },
+      _avg: { rating: true },
+      _count: { _all: true },
+    }),
+  ])
 
   // Si le profil n'existe pas ou est desactive -> page 404
   if (!profile || !profile.isActive) {
     notFound()
   }
+
+  // Note moyenne arrondie a 1 decimale + nombre d'avis
+  const averageRating = ratingAgg._avg.rating
+    ? Math.round(ratingAgg._avg.rating * 10) / 10
+    : null
+  const reviewCount = ratingAgg._count._all
 
   // Construire le nom affiche (prenom + nom si disponibles, sinon name)
   const displayName =
@@ -264,6 +279,13 @@ export default async function StylistPublicPage({ params }: StylistPageProps) {
                 <MapPin className="h-4 w-4" />
                 {profile.city}
               </p>
+
+              {/* Note moyenne detaillee (visible si au moins 1 avis) */}
+              <AverageRating
+                averageRating={averageRating}
+                reviewCount={reviewCount}
+                className="mt-2 justify-center sm:justify-start"
+              />
 
               {/* Bio (si renseignee) dans un bloc avec bordure gauche */}
               {profile.bio && (
@@ -407,6 +429,27 @@ export default async function StylistPublicPage({ params }: StylistPageProps) {
                 ))}
               </div>
             )}
+          </section>
+
+          {/* ============================================================ */}
+          {/* SECTION AVIS : note moyenne + liste paginee                  */}
+          {/* ============================================================ */}
+          <section>
+            <div className="flex items-center gap-4">
+              <h2 className="text-xl font-semibold">
+                Avis
+                {reviewCount > 0 && (
+                  <span className="ml-2 text-base font-normal text-muted-foreground">
+                    ({reviewCount})
+                  </span>
+                )}
+              </h2>
+              <Separator className="flex-1" />
+            </div>
+
+            <div className="mt-6">
+              <ReviewList stylistId={id} />
+            </div>
           </section>
         </div>
       </main>

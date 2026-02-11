@@ -26,6 +26,7 @@ import {
   Clock,
   Tags,
   Users,
+  Star,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 
@@ -73,6 +74,11 @@ export const NAVIGATION_ITEMS: Record<"CLIENT" | "STYLIST" | "ADMIN", NavItem[]>
       icon: Calendar,
     },
     {
+      label: "Mes avis",
+      href: "/client/avis",
+      icon: Star,
+    },
+    {
       label: "Messages",
       href: "/client/messages",
       icon: MessageCircle,
@@ -110,6 +116,11 @@ export const NAVIGATION_ITEMS: Record<"CLIENT" | "STYLIST" | "ADMIN", NavItem[]>
       label: "Reservations",
       href: "/coiffeuse/reservations",
       icon: Calendar,
+    },
+    {
+      label: "Avis recus",
+      href: "/coiffeuse/avis",
+      icon: Star,
     },
     {
       label: "Messages",

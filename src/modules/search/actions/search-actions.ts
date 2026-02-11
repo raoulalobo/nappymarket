@@ -48,6 +48,10 @@ interface RawStylistRow {
   longitude: number
   distance_km: number
   is_verified: boolean
+  /** Note moyenne (null si aucun avis) — calculee via sous-requete SQL */
+  avg_rating: number | null
+  /** Nombre d'avis — calcule via sous-requete SQL */
+  review_count: bigint
 }
 
 /**
@@ -108,7 +112,7 @@ export async function searchStylists(
     // calcule (distance_km) directement dans WHERE de la meme requete.
     const stylists = await db.$queryRawUnsafe<RawStylistRow[]>(`
       SELECT id, user_name, user_image, bio, city, latitude, longitude,
-             is_verified, distance_km
+             is_verified, distance_km, avg_rating, review_count
       FROM (
         SELECT
           sp.id,
@@ -128,7 +132,9 @@ export async function searchStylists(
               ))
             )
           ) AS distance_km,
-          (SELECT MIN(ss.price) FROM stylist_services ss WHERE ss."stylistId" = sp.id) AS price_min
+          (SELECT MIN(ss.price) FROM stylist_services ss WHERE ss."stylistId" = sp.id) AS price_min,
+          (SELECT AVG(r.rating) FROM reviews r WHERE r."stylistId" = sp.id) AS avg_rating,
+          (SELECT COUNT(*) FROM reviews r WHERE r."stylistId" = sp.id) AS review_count
         FROM stylist_profiles sp
         INNER JOIN users u ON u.id = sp."userId"
         WHERE sp."isActive" = true
@@ -216,6 +222,11 @@ export async function searchStylists(
         priceMin: prices.length > 0 ? Math.min(...prices) : null,
         priceMax: prices.length > 0 ? Math.max(...prices) : null,
         categoryNames,
+        // Note moyenne arrondie a 1 decimale (ex: 4.666 -> 4.7)
+        averageRating: row.avg_rating
+          ? Math.round(Number(row.avg_rating) * 10) / 10
+          : null,
+        reviewCount: Number(row.review_count),
       }
     })
 
