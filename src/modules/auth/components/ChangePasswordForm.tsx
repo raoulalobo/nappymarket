@@ -64,7 +64,7 @@ export function ChangePasswordForm() {
   }
 
   return (
-    <Card>
+    <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
         <div className="flex items-center gap-2">
           <Shield className="h-5 w-5 text-muted-foreground" />

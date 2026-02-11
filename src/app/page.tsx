@@ -139,7 +139,7 @@ export default async function HomePage() {
         {/* Hero Section — Bento Grid + overlay frosted glass          */}
         {/* Images selectionnees aleatoirement a chaque requete        */}
         {/* ========================================================= */}
-        <section className="relative overflow-hidden">
+        <section className="relative">
 
           {/* --- Grille Bento d'images de coiffures --- */}
           {/* Mobile : 2 colonnes, 2 lignes (4 images visibles)      */}
