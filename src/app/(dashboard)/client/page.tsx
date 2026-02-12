@@ -18,7 +18,7 @@ import { BookingStatusBadge } from "@/modules/booking/components/BookingStatusBa
 import { formatDate, formatTime, formatPrice } from "@/shared/lib/utils"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Calendar, Clock, ArrowRight, User, Search } from "lucide-react"
+import { Calendar, Clock, ArrowRight, User, Search, Star } from "lucide-react"
 
 export default async function ClientDashboardPage() {
   // Verification session + role CLIENT (redirige automatiquement sinon)
@@ -43,6 +43,15 @@ export default async function ClientDashboardPage() {
     take: 5,
   })
 
+  // Compter les prestations terminees sans avis (bookings COMPLETED sans Review liee)
+  const pendingReviewsCount = await db.booking.count({
+    where: {
+      clientId: session.user.id,
+      status: "COMPLETED",
+      review: null,
+    },
+  })
+
   return (
     <div className="container mx-auto px-4 py-8 space-y-8">
       <div>
@@ -53,6 +62,28 @@ export default async function ClientDashboardPage() {
           Bienvenue dans votre espace cliente.
         </p>
       </div>
+
+      {/* Alerte : prestations en attente d'avis */}
+      {pendingReviewsCount > 0 && (
+        <Card className="border-purple-200 bg-purple-50 dark:border-purple-800 dark:bg-purple-950/30">
+          <CardContent className="flex items-center justify-between p-4">
+            <div className="flex items-center gap-3">
+              <Star className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+              <p className="text-sm font-medium text-purple-800 dark:text-purple-200">
+                {pendingReviewsCount === 1
+                  ? "1 prestation terminée attend votre avis"
+                  : `${pendingReviewsCount} prestations terminées attendent votre avis`}
+              </p>
+            </div>
+            <Button asChild size="sm" variant="outline">
+              <Link href="/client/reservations">
+                Donner mon avis
+                <ArrowRight className="ml-1 h-3.5 w-3.5" />
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Prochaines reservations */}
       <Card>
