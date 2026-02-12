@@ -21,6 +21,13 @@ import { Footer } from "@/shared/components/layout/Footer"
 import { getPublicGalleryImages } from "@/modules/admin/actions/gallery-actions"
 import { Button } from "@/components/ui/button"
 
+/**
+ * Forcer le rendu dynamique (SSR a chaque requete) pour que les images
+ * ajoutees/modifiees par l'admin soient visibles immediatement.
+ * Sans cela, Next.js pre-rend la page au build et la met en cache statique.
+ */
+export const dynamic = "force-dynamic"
+
 /** Metadata statique pour le SEO */
 export const metadata: Metadata = {
   title: "Inspirations coiffure | NappyMarket",
