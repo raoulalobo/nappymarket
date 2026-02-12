@@ -7,7 +7,14 @@
  * Interactions :
  *   - Visible sur toutes les pages publiques et les espaces connectes
  *   - UserMenu gere l'affichage conditionnel (boutons auth / dropdown user)
+ *   - MobilePublicNav : hamburger + drawer Sheet en mobile (<md)
  *   - Le logo redirige vers l'accueil
+ *
+ * Structure mobile :
+ *   [Hamburger] [Logo .............. ] [UserMenu]
+ *
+ * Structure desktop :
+ *   [Logo] [Inspirations .............. ] [UserMenu]
  *
  * Exemple :
  *   <Header />
@@ -15,19 +22,24 @@
 import Link from "next/link"
 import { APP_NAME } from "@/shared/lib/constants"
 import { UserMenu } from "./UserMenu"
+import { MobilePublicNav } from "./MobilePublicNav"
 
 export function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        {/* Logo et nom de l'application */}
-        <Link href="/" className="flex items-center gap-2">
-          <span className="text-xl font-bold tracking-tight">{APP_NAME}</span>
-        </Link>
+        {/* Partie gauche : hamburger mobile + logo */}
+        <div className="flex items-center gap-2">
+          {/* Hamburger — visible uniquement en mobile (<md) */}
+          <MobilePublicNav />
 
-        {/* Navigation principale — seul "Inspirations" reste ici,
-            les CTAs "Trouver une coiffeuse" et "Devenir coiffeuse"
-            sont dans le Hero pour les visiteurs non connectes */}
+          {/* Logo et nom de l'application */}
+          <Link href="/" className="flex items-center gap-2">
+            <span className="text-xl font-bold tracking-tight">{APP_NAME}</span>
+          </Link>
+        </div>
+
+        {/* Navigation principale desktop — masquee en mobile (<md) */}
         <nav className="hidden items-center gap-6 md:flex">
           <Link
             href="/inspirations"
