@@ -39,6 +39,8 @@ import { Footer } from "@/shared/components/layout/Footer"
 import { APP_NAME } from "@/shared/lib/constants"
 import { HeroSearchBar } from "@/modules/search/components/HeroSearchBar"
 import { getActiveCategories } from "@/modules/search/actions/search-actions"
+import { getSession } from "@/shared/lib/auth/get-session"
+import { Button } from "@/components/ui/button"
 
 /* ------------------------------------------------------------------ */
 /* Pool curate d'images pour le hero Bento Grid                        */
@@ -123,6 +125,9 @@ const TRUST_BADGES = [
 ] as const
 
 export default async function HomePage() {
+  /* Verifier si l'utilisateur est connecte (affichage conditionnel du Hero) */
+  const session = await getSession()
+
   /* Charger les categories actives cote serveur (Server Component) */
   const categoriesResult = await getActiveCategories()
   const categories = categoriesResult.success ? categoriesResult.data : []
@@ -232,8 +237,19 @@ export default async function HomePage() {
                   domicile, partout en France.
                 </p>
 
-                {/* Barre de recherche hero : saisir une ville */}
-                <HeroSearchBar />
+                {/* Connecte : SearchBar / Visiteur : boutons CTA */}
+                {session ? (
+                  <HeroSearchBar />
+                ) : (
+                  <div className="flex flex-col gap-3 sm:flex-row">
+                    <Button asChild size="lg">
+                      <Link href="/recherche">Trouver une coiffeuse</Link>
+                    </Button>
+                    <Button asChild size="lg" variant="outline">
+                      <Link href="/inscription">Devenir coiffeuse</Link>
+                    </Button>
+                  </div>
+                )}
 
                 {/* Badges de confiance */}
                 <div className="flex flex-wrap justify-center gap-x-5 gap-y-2 pt-1">

@@ -25,25 +25,15 @@ export function Header() {
           <span className="text-xl font-bold tracking-tight">{APP_NAME}</span>
         </Link>
 
-        {/* Navigation principale */}
+        {/* Navigation principale — seul "Inspirations" reste ici,
+            les CTAs "Trouver une coiffeuse" et "Devenir coiffeuse"
+            sont dans le Hero pour les visiteurs non connectes */}
         <nav className="hidden items-center gap-6 md:flex">
-          <Link
-            href="/recherche"
-            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Trouver une coiffeuse
-          </Link>
           <Link
             href="/inspirations"
             className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             Inspirations
-          </Link>
-          <Link
-            href="/inscription"
-            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Devenir coiffeuse
           </Link>
         </nav>
 
