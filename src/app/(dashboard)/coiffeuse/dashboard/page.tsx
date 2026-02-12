@@ -16,14 +16,20 @@ import Link from "next/link"
 import { requireRole } from "@/shared/lib/auth/dal"
 import { db } from "@/shared/lib/db"
 import { BookingStatusBadge } from "@/modules/booking/components/BookingStatusBadge"
+import { getOnboardingStatus } from "@/modules/stylist/actions/onboarding-actions"
+import { OnboardingChecklist } from "@/modules/stylist/components/OnboardingChecklist"
 import { formatDate, formatTime, formatPrice } from "@/shared/lib/utils"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Calendar, Clock, ArrowRight, User } from "lucide-react"
+import { TopRatedBadge } from "@/modules/review/components/TopRatedBadge"
 
 export default async function StylistDashboardPage() {
   // Verification session + role STYLIST (redirige automatiquement sinon)
   const session = await requireRole("STYLIST")
+
+  // Calculer le statut d'onboarding (checklist de completion du profil)
+  const onboardingStatus = await getOnboardingStatus(session.user.id)
 
   // Charger le profil coiffeuse pour obtenir l'ID
   const profile = await db.stylistProfile.findUnique({
@@ -51,16 +57,37 @@ export default async function StylistDashboardPage() {
       })
     : 0
 
+  // Charger la note moyenne pour le badge "Top notee"
+  const ratingAgg = profile
+    ? await db.review.aggregate({
+        where: { stylistId: profile.id },
+        _avg: { rating: true },
+        _count: { _all: true },
+      })
+    : null
+  const averageRating = ratingAgg?._avg.rating
+    ? Math.round(ratingAgg._avg.rating * 10) / 10
+    : null
+  const reviewCount = ratingAgg?._count._all ?? 0
+
   return (
     <div className="container mx-auto px-4 py-8 space-y-8">
       <div>
-        <h1 className="text-2xl font-bold">
-          Bonjour {session.user.firstName ?? session.user.name} !
-        </h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-bold">
+            Bonjour {session.user.firstName ?? session.user.name} !
+          </h1>
+          <TopRatedBadge averageRating={averageRating} reviewCount={reviewCount} />
+        </div>
         <p className="mt-1 text-muted-foreground">
           Bienvenue dans votre espace coiffeuse.
         </p>
       </div>
+
+      {/* Checklist onboarding : s'affiche tant que le profil est incomplet */}
+      {!onboardingStatus.isComplete && (
+        <OnboardingChecklist status={onboardingStatus} />
+      )}
 
       {/* Alerte reservations en attente */}
       {pendingCount > 0 && (

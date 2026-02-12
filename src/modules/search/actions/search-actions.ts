@@ -141,6 +141,24 @@ export async function searchStylists(
           AND sp.latitude IS NOT NULL
           AND sp.longitude IS NOT NULL
           AND u."isActive" = true
+          -- Onboarding complet : profil renseigne (bio + photo)
+          AND sp.bio IS NOT NULL
+          AND u.image IS NOT NULL
+          -- Onboarding complet : au moins 1 prestation
+          AND EXISTS (
+            SELECT 1 FROM stylist_services ss2
+            WHERE ss2."stylistId" = sp.id
+          )
+          -- Onboarding complet : au moins 1 disponibilite active
+          AND EXISTS (
+            SELECT 1 FROM availabilities av
+            WHERE av."stylistId" = sp.id AND av."isActive" = true
+          )
+          -- Onboarding complet : au moins 1 photo portfolio
+          AND EXISTS (
+            SELECT 1 FROM portfolio_images pi2
+            WHERE pi2."stylistId" = sp.id
+          )
           ${categoryFilter}
       ) AS results
       WHERE distance_km <= $3
@@ -163,6 +181,24 @@ export async function searchStylists(
         AND sp.latitude IS NOT NULL
         AND sp.longitude IS NOT NULL
         AND u."isActive" = true
+        -- Onboarding complet : profil renseigne (bio + photo)
+        AND sp.bio IS NOT NULL
+        AND u.image IS NOT NULL
+        -- Onboarding complet : au moins 1 prestation
+        AND EXISTS (
+          SELECT 1 FROM stylist_services ss2
+          WHERE ss2."stylistId" = sp.id
+        )
+        -- Onboarding complet : au moins 1 disponibilite active
+        AND EXISTS (
+          SELECT 1 FROM availabilities av
+          WHERE av."stylistId" = sp.id AND av."isActive" = true
+        )
+        -- Onboarding complet : au moins 1 photo portfolio
+        AND EXISTS (
+          SELECT 1 FROM portfolio_images pi2
+          WHERE pi2."stylistId" = sp.id
+        )
         ${categoryFilter}
         AND (
           6371 * acos(

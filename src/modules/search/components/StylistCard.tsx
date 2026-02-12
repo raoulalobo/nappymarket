@@ -22,6 +22,7 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { formatPrice } from "@/shared/lib/utils"
 import { AverageRating } from "@/modules/review/components/AverageRating"
+import { TopRatedBadge } from "@/modules/review/components/TopRatedBadge"
 import type { SearchStylistResult } from "../types"
 
 interface StylistCardProps {
@@ -66,6 +67,10 @@ export function StylistCard({ stylist }: StylistCardProps) {
                   Verifiee
                 </Badge>
               )}
+              <TopRatedBadge
+                averageRating={stylist.averageRating}
+                reviewCount={stylist.reviewCount}
+              />
             </div>
 
             {/* Note moyenne compacte (si au moins 1 avis) */}

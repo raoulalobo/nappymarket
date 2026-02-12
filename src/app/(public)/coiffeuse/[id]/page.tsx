@@ -40,6 +40,7 @@ import {
   CardHeader,
 } from "@/components/ui/card"
 import { AverageRating } from "@/modules/review/components/AverageRating"
+import { TopRatedBadge } from "@/modules/review/components/TopRatedBadge"
 import { ReviewList } from "@/modules/review/components/ReviewList"
 
 /* ------------------------------------------------------------------ */
@@ -272,6 +273,7 @@ export default async function StylistPublicPage({ params }: StylistPageProps) {
                 {profile.isVerified && (
                   <Badge variant="secondary">Verifiee</Badge>
                 )}
+                <TopRatedBadge averageRating={averageRating} reviewCount={reviewCount} />
               </div>
 
               {/* Ville avec icone MapPin */}

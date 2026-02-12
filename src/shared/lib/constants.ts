@@ -90,3 +90,6 @@ export const REVIEWS_PER_PAGE = 10
 
 /** Longueur maximale du commentaire d'un avis (caractères) */
 export const MAX_REVIEW_COMMENT_LENGTH = 1000
+
+/** Seuil de note moyenne pour afficher le badge "Top notee" (>= 4/5) */
+export const TOP_RATED_THRESHOLD = 4
