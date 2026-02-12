@@ -34,6 +34,12 @@ export function Header() {
             Trouver une coiffeuse
           </Link>
           <Link
+            href="/inspirations"
+            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Inspirations
+          </Link>
+          <Link
             href="/inscription"
             className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >

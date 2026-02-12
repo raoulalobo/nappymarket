@@ -4,7 +4,7 @@
 // Role : Definir le modele de donnees de la marketplace coiffure afro.
 // Tables : User, StylistProfile, ClientProfile, ServiceCategory,
 //          StylistService, PortfolioImage, Availability, Booking,
-//          Payment, Message, Conversation
+//          Payment, Message, Conversation, GalleryImage
 //
 // Interactions :
 //   - Supabase PostgreSQL (cloud) via connection pooling (PgBouncer)
@@ -413,6 +413,30 @@ model Conversation {
 
   @@unique([clientId, stylistId, bookingId])
   @@map("conversations")
+}
+
+/// Image de la galerie publique "Inspirations"
+///
+/// Interactions :
+///   - CRUD par l'admin dans le back-office (page /admin/inspirations)
+///   - Affichee sur la page publique /inspirations (Server Component)
+///   - Stockee sur Supabase Storage (bucket "gallery")
+///   - Triee par sortOrder (0 = en premier), puis createdAt
+///   - isActive permet a l'admin de masquer temporairement une image
+///
+/// Exemple : une photo "Tresses africaines elegantes" visible en page d'accueil
+model GalleryImage {
+  id          String   @id @default(cuid())
+  title       String // Titre de l'image (ex: "Tresses africaines elegantes")
+  description String? // Description optionnelle pour le SEO et l'inspiration
+  imageUrl    String // URL publique Supabase Storage (bucket "gallery")
+  isActive    Boolean  @default(true) // Visible sur la page publique si true
+  sortOrder   Int      @default(0) // Ordre d'affichage (0 = en premier)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive, sortOrder])
+  @@map("gallery_images")
 }
 
 /// Avis d'une cliente sur une coiffeuse apres une prestation terminee

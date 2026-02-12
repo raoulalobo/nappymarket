@@ -14,12 +14,12 @@
  * Endpoint : POST /api/upload/image
  * Body : FormData avec les champs :
  *   - file : File (image JPG, PNG ou WebP, max 5 Mo)
- *   - bucket : "avatars" | "portfolio" | "categories"
+ *   - bucket : "avatars" | "portfolio" | "categories" | "gallery"
  *   - path : chemin de stockage (ex: "user-123/1707321600000-a1b2c3.jpg")
  *
  * Securite par bucket :
  *   - "avatars" / "portfolio" : le chemin doit commencer par l'ID utilisateur
- *   - "categories" : reserve aux ADMIN, pas de contrainte userId dans le chemin
+ *   - "categories" / "gallery" : reserve aux ADMIN, pas de contrainte userId dans le chemin
  *
  * Reponse succes : { url: string }
  * Reponse erreur : { error: string }
@@ -96,8 +96,8 @@ export async function POST(request: NextRequest) {
     // 7. Verification de securite par bucket
     //    - "categories" : reserve aux admins, pas de contrainte de chemin userId
     //    - Autres buckets : le chemin doit commencer par l'ID utilisateur
-    if (bucket === STORAGE_BUCKETS.CATEGORIES) {
-      // Le bucket categories est reserve aux administrateurs
+    if (bucket === STORAGE_BUCKETS.CATEGORIES || bucket === STORAGE_BUCKETS.GALLERY) {
+      // Les buckets categories et gallery sont reserves aux administrateurs
       if (session.user.role !== "ADMIN") {
         return NextResponse.json(
           { error: "Acces reserve aux administrateurs." },

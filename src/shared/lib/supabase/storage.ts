@@ -22,6 +22,7 @@
  *   - "avatars" : photos de profil (1 par utilisateur)
  *   - "portfolio" : photos de realisations des coiffeuses (max 20)
  *   - "categories" : images des categories de services (gere par admin)
+ *   - "gallery" : images de la galerie publique Inspirations (gere par admin)
  *
  * Exemple :
  *   import { uploadImage, deleteImage, getPublicUrl } from "@/shared/lib/supabase/storage"
@@ -36,6 +37,7 @@ export const STORAGE_BUCKETS = {
   AVATARS: "avatars",
   PORTFOLIO: "portfolio",
   CATEGORIES: "categories",
+  GALLERY: "gallery",
 } as const
 
 export type StorageBucket = (typeof STORAGE_BUCKETS)[keyof typeof STORAGE_BUCKETS]

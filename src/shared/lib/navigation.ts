@@ -22,6 +22,7 @@ import {
   Calendar,
   MessageCircle,
   Image,
+  Images,
   Scissors,
   Clock,
   Tags,
@@ -140,6 +141,11 @@ export const NAVIGATION_ITEMS: Record<"CLIENT" | "STYLIST" | "ADMIN", NavItem[]>
       label: "Catalogue",
       href: "/admin/catalogue",
       icon: Tags,
+    },
+    {
+      label: "Inspirations",
+      href: "/admin/inspirations",
+      icon: Images,
     },
     {
       label: "Coiffeuses",
