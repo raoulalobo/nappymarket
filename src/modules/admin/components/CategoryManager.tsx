@@ -291,9 +291,9 @@ export function CategoryManager() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-16">Image</TableHead>
+                  <TableHead className="hidden md:table-cell w-16">Image</TableHead>
                   <TableHead>Nom</TableHead>
-                  <TableHead>Description</TableHead>
+                  <TableHead className="hidden md:table-cell">Description</TableHead>
                   <TableHead>Statut</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -301,8 +301,8 @@ export function CategoryManager() {
               <TableBody>
                 {categories.map((category) => (
                   <TableRow key={category.id}>
-                    {/* Colonne : Miniature de l'image de la categorie */}
-                    <TableCell>
+                    {/* Colonne : Miniature de l'image (masquee sur mobile) */}
+                    <TableCell className="hidden md:table-cell">
                       {category.imageUrl ? (
                         <img
                           src={category.imageUrl}
@@ -321,8 +321,8 @@ export function CategoryManager() {
                       {category.name}
                     </TableCell>
 
-                    {/* Colonne : Description (tronquee si trop longue) */}
-                    <TableCell className="max-w-[300px] truncate text-muted-foreground">
+                    {/* Colonne : Description (masquee sur mobile, tronquee si trop longue) */}
+                    <TableCell className="hidden md:table-cell max-w-[300px] truncate text-muted-foreground">
                       {category.description || "—"}
                     </TableCell>
 

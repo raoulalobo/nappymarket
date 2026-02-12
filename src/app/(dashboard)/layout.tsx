@@ -61,7 +61,7 @@ export default async function DashboardLayout({
         <DashboardSidebar />
 
         {/* Contenu principal + bouton hamburger mobile en haut */}
-        <div className="flex flex-1 flex-col">
+        <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
           {/* Barre mobile avec bouton hamburger — visible uniquement en mobile (<md) */}
           <div className="flex items-center border-b px-4 py-2 md:hidden">
             <MobileSidebar />

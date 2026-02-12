@@ -171,9 +171,9 @@ export function StylistList() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Nom</TableHead>
-                  <TableHead>Email</TableHead>
+                  <TableHead className="hidden md:table-cell">Email</TableHead>
                   <TableHead>Ville</TableHead>
-                  <TableHead className="text-center">Services</TableHead>
+                  <TableHead className="hidden md:table-cell text-center">Services</TableHead>
                   <TableHead className="text-center">Verifie</TableHead>
                   <TableHead className="text-center">Actif</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -198,8 +198,8 @@ export function StylistList() {
                         {getDisplayName(stylist)}
                       </TableCell>
 
-                      {/* Colonne : Adresse email */}
-                      <TableCell className="text-muted-foreground">
+                      {/* Colonne : Adresse email (masquee sur mobile) */}
+                      <TableCell className="hidden md:table-cell text-muted-foreground">
                         {stylist.email}
                       </TableCell>
 
@@ -210,8 +210,8 @@ export function StylistList() {
                         )}
                       </TableCell>
 
-                      {/* Colonne : Nombre de services proposes */}
-                      <TableCell className="text-center">
+                      {/* Colonne : Nombre de services proposes (masquee sur mobile) */}
+                      <TableCell className="hidden md:table-cell text-center">
                         {serviceCount}
                       </TableCell>
 
