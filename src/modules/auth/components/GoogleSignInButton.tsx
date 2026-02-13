@@ -68,6 +68,9 @@ export function GoogleSignInButton({
         // Redirige vers /choix-role apres la 1ere connexion Google
         // Le middleware ou la page /choix-role verifiera si le role est deja defini
         callbackURL,
+        // Force Google a afficher l'ecran de selection de compte a chaque connexion
+        // Sans ce parametre, Google reconnecte automatiquement au dernier compte utilise
+        prompt: "select_account",
       })
     } catch {
       toast.error("Erreur lors de la connexion avec Google")
