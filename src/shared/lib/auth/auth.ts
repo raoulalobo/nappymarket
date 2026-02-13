@@ -34,6 +34,10 @@ export const auth = betterAuth({
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      // Force Google a afficher l'ecran de selection de compte a chaque connexion
+      // Sans ce parametre, Google reconnecte automatiquement au dernier compte utilise
+      // meme apres deconnexion de NappyMarket (surtout avec un seul compte Google)
+      prompt: "select_account",
       // Mapper les champs du profil Google vers notre modele User
       mapProfileToUser: (profile) => ({
         firstName: profile.given_name ?? "",
