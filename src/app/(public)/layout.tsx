@@ -33,8 +33,10 @@ export default function PublicLayout({
 }) {
   return (
     <div className="flex min-h-screen flex-col">
-      {/* Header sticky avec hamburger public par defaut */}
+      {/* Header fixed toujours visible au scroll */}
       <Header />
+      {/* Spacer : compense la hauteur du header fixed (h-16 = 64px) */}
+      <div className="h-16" />
 
       {/* Contenu de la page — flex-1 pousse le footer en bas */}
       <main className="flex-1">{children}</main>

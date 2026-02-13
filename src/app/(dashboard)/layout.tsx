@@ -50,8 +50,10 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex min-h-screen flex-col">
-      {/* Header sticky avec hamburger dashboard integre en mobile */}
+      {/* Header fixed toujours visible au scroll */}
       <Header mobileNav={<MobileSidebar />} />
+      {/* Spacer : compense la hauteur du header fixed (h-16 = 64px) */}
+      <div className="h-16" />
 
       {/* Zone centrale : sidebar desktop + contenu */}
       <div className="flex flex-1">

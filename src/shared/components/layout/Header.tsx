@@ -1,5 +1,5 @@
 /**
- * Header — Barre de navigation principale (sticky)
+ * Header — Barre de navigation principale (fixed top)
  *
  * Role : Afficher le logo, le hamburger mobile, les liens de navigation
  *        desktop et le menu utilisateur. S'adapte selon le contexte :
@@ -38,7 +38,7 @@ interface HeaderProps {
 
 export function Header({ mobileNav }: HeaderProps) {
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="fixed top-0 inset-x-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         {/* Partie gauche : hamburger mobile + logo */}
         <div className="flex items-center gap-2">
