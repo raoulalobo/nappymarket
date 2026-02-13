@@ -34,8 +34,6 @@
 import Link from "next/link"
 import Image from "next/image"
 import { MapPin, Scissors, Home } from "lucide-react"
-import { Header } from "@/shared/components/layout/Header"
-import { Footer } from "@/shared/components/layout/Footer"
 import { APP_NAME } from "@/shared/lib/constants"
 import { HeroSearchBar } from "@/modules/search/components/HeroSearchBar"
 import { getActiveCategories } from "@/modules/search/actions/search-actions"
@@ -136,14 +134,11 @@ export default async function HomePage() {
   const heroImages = pickRandom(HERO_IMAGE_POOL, 6)
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <Header />
-
-      <main className="flex-1">
-        {/* ========================================================= */}
-        {/* Hero Section — Bento Grid + overlay frosted glass          */}
-        {/* Images selectionnees aleatoirement a chaque requete        */}
-        {/* ========================================================= */}
+    <>
+      {/* ========================================================= */}
+      {/* Hero Section — Bento Grid + overlay frosted glass          */}
+      {/* Images selectionnees aleatoirement a chaque requete        */}
+      {/* ========================================================= */}
         <section className="relative">
 
           {/* --- Grille Bento d'images de coiffures --- */}
@@ -338,9 +333,6 @@ export default async function HomePage() {
             )}
           </div>
         </section>
-      </main>
-
-      <Footer />
-    </div>
+    </>
   )
 }

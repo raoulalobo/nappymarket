@@ -16,8 +16,6 @@
 import type { Metadata } from "next"
 import Image from "next/image"
 import Link from "next/link"
-import { Header } from "@/shared/components/layout/Header"
-import { Footer } from "@/shared/components/layout/Footer"
 import { getPublicGalleryImages } from "@/modules/admin/actions/gallery-actions"
 import { Button } from "@/components/ui/button"
 
@@ -41,11 +39,8 @@ export default async function InspirationsPage() {
   const images = result.success ? result.data : []
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <Header />
-
-      <main className="flex-1">
-        {/* Section d'introduction */}
+    <>
+      {/* Section d'introduction */}
         <div className="container mx-auto px-4 pt-12 pb-8 text-center">
           <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
             Inspirations
@@ -114,9 +109,6 @@ export default async function InspirationsPage() {
             </>
           )}
         </div>
-      </main>
-
-      <Footer />
-    </div>
+    </>
   )
 }

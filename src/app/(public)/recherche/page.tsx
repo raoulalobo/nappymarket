@@ -17,8 +17,6 @@
  */
 import type { Metadata } from "next"
 import { Suspense } from "react"
-import { Header } from "@/shared/components/layout/Header"
-import { Footer } from "@/shared/components/layout/Footer"
 import { SearchPageClient } from "@/modules/search/components/SearchPageClient"
 
 /** Metadata statique pour le SEO */
@@ -30,15 +28,9 @@ export const metadata: Metadata = {
 
 export default function RecherchePage() {
   return (
-    <div className="flex min-h-screen flex-col">
-      <Header />
-
-      {/* Suspense necessaire car SearchPageClient utilise useSearchParams() */}
-      <Suspense fallback={null}>
-        <SearchPageClient />
-      </Suspense>
-
-      <Footer />
-    </div>
+    /* Suspense necessaire car SearchPageClient utilise useSearchParams() */
+    <Suspense fallback={null}>
+      <SearchPageClient />
+    </Suspense>
   )
 }

@@ -29,8 +29,6 @@ import type { Metadata } from "next"
 import { MapPin, ArrowLeft, Clock, Scissors } from "lucide-react"
 import { db } from "@/shared/lib/db"
 import { formatPrice } from "@/shared/lib/utils"
-import { Header } from "@/shared/components/layout/Header"
-import { Footer } from "@/shared/components/layout/Footer"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
@@ -221,13 +219,7 @@ export default async function StylistPublicPage({ params }: StylistPageProps) {
     .slice(0, 2)
 
   return (
-    <div className="flex min-h-screen flex-col">
-      {/* Navigation principale (logo, liens, menu user) */}
-      <Header />
-
-      {/* Contenu principal centre avec max-w-4xl */}
-      <main className="flex-1">
-        <div className="mx-auto max-w-4xl px-4 py-8 space-y-10">
+    <div className="mx-auto max-w-4xl px-4 py-8 space-y-10">
           {/* ============================================================ */}
           {/* LIEN RETOUR vers la page de recherche                        */}
           {/* ============================================================ */}
@@ -453,11 +445,6 @@ export default async function StylistPublicPage({ params }: StylistPageProps) {
               <ReviewList stylistId={id} />
             </div>
           </section>
-        </div>
-      </main>
-
-      {/* Pied de page (liens, legal, copyright) */}
-      <Footer />
     </div>
   )
 }

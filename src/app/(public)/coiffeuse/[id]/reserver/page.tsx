@@ -20,8 +20,6 @@ import type { Metadata } from "next"
 import { ArrowLeft } from "lucide-react"
 import { db } from "@/shared/lib/db"
 import { getSession } from "@/shared/lib/auth/get-session"
-import { Header } from "@/shared/components/layout/Header"
-import { Footer } from "@/shared/components/layout/Footer"
 import { BookingFlow } from "@/modules/booking/components/BookingFlow"
 
 /* ------------------------------------------------------------------ */
@@ -127,37 +125,29 @@ export default async function ReserverPage({ params }: ReserverPageProps) {
       : profile.user.name
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <Header />
+    <div className="mx-auto max-w-4xl px-4 py-8 space-y-6">
+      {/* Lien retour vers le profil */}
+      <Link
+        href={`/coiffeuse/${id}`}
+        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Retour au profil de {stylistName}
+      </Link>
 
-      <main className="flex-1">
-        <div className="mx-auto max-w-4xl px-4 py-8 space-y-6">
-          {/* Lien retour vers le profil */}
-          <Link
-            href={`/coiffeuse/${id}`}
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Retour au profil de {stylistName}
-          </Link>
+      {/* Titre */}
+      <h1 className="text-2xl font-bold text-center">
+        Reserver chez {stylistName}
+      </h1>
 
-          {/* Titre */}
-          <h1 className="text-2xl font-bold text-center">
-            Reserver chez {stylistName}
-          </h1>
-
-          {/* Flow de reservation multi-etapes */}
-          <BookingFlow
-            stylistId={id}
-            stylistName={stylistName}
-            services={profile.services}
-            defaultAddress={clientProfile?.address ?? undefined}
-            defaultCity={clientProfile?.city ?? undefined}
-          />
-        </div>
-      </main>
-
-      <Footer />
+      {/* Flow de reservation multi-etapes */}
+      <BookingFlow
+        stylistId={id}
+        stylistName={stylistName}
+        services={profile.services}
+        defaultAddress={clientProfile?.address ?? undefined}
+        defaultCity={clientProfile?.city ?? undefined}
+      />
     </div>
   )
 }
