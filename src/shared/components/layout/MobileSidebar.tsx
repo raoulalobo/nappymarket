@@ -37,7 +37,7 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet"
 import { useSession } from "@/modules/auth/hooks/useSession"
-import { NAVIGATION_ITEMS } from "@/shared/lib/navigation"
+import { NAVIGATION_ITEMS, ROLE_CONFIG } from "@/shared/lib/navigation"
 import type { NavItem } from "@/shared/lib/navigation"
 
 /**
@@ -130,10 +130,19 @@ export function MobileSidebar() {
       {/* Drawer Sheet — s'ouvre depuis la gauche */}
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="left" className="w-72 p-0">
-          {/* En-tete du drawer */}
+          {/* En-tete du drawer : icone + label du role */}
           <SheetHeader className="px-4 pt-4 pb-2">
-            <SheetTitle className="text-base">
-              {role === "ADMIN" ? "Administration" : "Mon espace"}
+            <SheetTitle className="flex items-center gap-2 text-base">
+              {(() => {
+                const config = ROLE_CONFIG[role]
+                const RoleIcon = config.icon
+                return (
+                  <>
+                    <RoleIcon className="h-5 w-5 text-primary" />
+                    {config.label}
+                  </>
+                )
+              })()}
             </SheetTitle>
             <SheetDescription className="text-xs">
               Navigation rapide

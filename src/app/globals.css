@@ -171,6 +171,46 @@
   --sidebar-ring: oklch(0.55 0.05 60);
 }
 
+/* =================================================================
+ * Overrides de couleur par role (dashboard CLIENT / STYLIST)
+ *
+ * Le wrapper DashboardLayout porte `data-role="CLIENT|STYLIST|ADMIN"`.
+ * CLIENT : ton dore/ambre chaud — chaleureux, accueillant
+ * STYLIST : ton mauve/violet — creatif, professionnel
+ * ADMIN : reste sur le primary par defaut (Pinkish Cinnamon)
+ * ================================================================= */
+
+/* --- CLIENT : accent dore/ambre chaud --- */
+[data-role="CLIENT"] {
+  --primary: oklch(0.72 0.12 65);
+  --ring: oklch(0.72 0.12 65);
+  --sidebar-primary: oklch(0.72 0.12 65);
+  --sidebar-ring: oklch(0.72 0.12 65);
+}
+
+/* --- STYLIST : accent mauve/violet --- */
+[data-role="STYLIST"] {
+  --primary: oklch(0.65 0.13 310);
+  --ring: oklch(0.65 0.13 310);
+  --sidebar-primary: oklch(0.65 0.13 310);
+  --sidebar-ring: oklch(0.65 0.13 310);
+}
+
+/* --- Dark mode : memes overrides --- */
+.dark [data-role="CLIENT"] {
+  --primary: oklch(0.75 0.11 65);
+  --ring: oklch(0.75 0.11 65);
+  --sidebar-primary: oklch(0.75 0.11 65);
+  --sidebar-ring: oklch(0.75 0.11 65);
+}
+
+.dark [data-role="STYLIST"] {
+  --primary: oklch(0.70 0.12 310);
+  --ring: oklch(0.70 0.12 310);
+  --sidebar-primary: oklch(0.70 0.12 310);
+  --sidebar-ring: oklch(0.70 0.12 310);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

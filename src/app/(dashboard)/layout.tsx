@@ -49,7 +49,7 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col" data-role={session.user.role}>
       {/* Header fixed toujours visible au scroll */}
       <Header mobileNav={<MobileSidebar />} />
       {/* Spacer : compense la hauteur du header fixed (h-16 = 64px) */}

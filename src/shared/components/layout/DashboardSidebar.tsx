@@ -27,9 +27,8 @@ import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { useSession } from "@/modules/auth/hooks/useSession"
-import { NAVIGATION_ITEMS } from "@/shared/lib/navigation"
+import { NAVIGATION_ITEMS, ROLE_CONFIG } from "@/shared/lib/navigation"
 import type { NavItem } from "@/shared/lib/navigation"
-import { APP_NAME } from "@/shared/lib/constants"
 
 /**
  * SidebarLink — Lien individuel dans la sidebar
@@ -94,11 +93,20 @@ export function DashboardSidebar() {
 
   return (
     <aside className="hidden md:flex w-60 shrink-0 flex-col border-r bg-muted/30">
-      {/* En-tete de la sidebar : nom de la section */}
-      <div className="flex h-14 items-center px-4">
-        <span className="text-sm font-semibold text-foreground">
-          {role === "ADMIN" ? "Administration" : "Mon espace"}
-        </span>
+      {/* En-tete de la sidebar : icone + label du role */}
+      <div className="flex h-14 items-center gap-2.5 px-4">
+        {(() => {
+          const config = ROLE_CONFIG[role]
+          const RoleIcon = config.icon
+          return (
+            <>
+              <RoleIcon className="h-5 w-5 text-primary" />
+              <span className="text-sm font-semibold text-foreground">
+                {config.label}
+              </span>
+            </>
+          )
+        })()}
       </div>
 
       <Separator />

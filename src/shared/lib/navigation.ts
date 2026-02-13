@@ -28,8 +28,29 @@ import {
   Tags,
   Users,
   Star,
+  Shield,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
+
+/**
+ * ROLE_CONFIG — Icone et label d'en-tete de sidebar par role
+ *
+ * Role : Fournir l'icone et le texte a afficher en haut du sidebar
+ *        pour differencier visuellement chaque espace (client, coiffeuse, admin).
+ *
+ * Interactions :
+ *   - Consomme par DashboardSidebar (desktop) et MobileSidebar (mobile)
+ *   - L'icone utilise `text-primary` qui est overridee par role via CSS (data-role)
+ *
+ * Exemple :
+ *   const config = ROLE_CONFIG["STYLIST"]
+ *   // { icon: Scissors, label: "Espace coiffeuse" }
+ */
+export const ROLE_CONFIG: Record<"CLIENT" | "STYLIST" | "ADMIN", { icon: LucideIcon; label: string }> = {
+  CLIENT: { icon: User, label: "Espace cliente" },
+  STYLIST: { icon: Scissors, label: "Espace coiffeuse" },
+  ADMIN: { icon: Shield, label: "Administration" },
+}
 
 /**
  * Structure d'un item de navigation dans la sidebar.
