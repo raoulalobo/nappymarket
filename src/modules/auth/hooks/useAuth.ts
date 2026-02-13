@@ -230,7 +230,28 @@ export function useAuth() {
     }
   }
 
-  return { login, register, logout, forgotPassword, resetPassword, changePassword, isLoading }
+  /**
+   * Connexion via Google OAuth
+   * Redirige vers le flow Google, puis vers /choix-role pour les nouveaux utilisateurs
+   * ou vers le dashboard pour les utilisateurs existants.
+   *
+   * @param callbackURL - URL de redirection apres authentification (defaut: /choix-role)
+   */
+  async function loginWithGoogle(callbackURL = "/choix-role") {
+    setIsLoading(true)
+    try {
+      await authClient.signIn.social({
+        provider: "google",
+        callbackURL,
+      })
+    } catch {
+      toast.error("Erreur lors de la connexion avec Google")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  return { login, register, logout, forgotPassword, resetPassword, changePassword, loginWithGoogle, isLoading }
 }
 
 /**

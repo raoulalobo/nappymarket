@@ -42,6 +42,7 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { registerSchema, type RegisterSchema } from "@/modules/auth/schemas/auth-schemas"
 import { useAuth } from "@/modules/auth/hooks/useAuth"
+import { GoogleSignInButton } from "@/modules/auth/components/GoogleSignInButton"
 
 export function RegisterForm() {
   const { register, isLoading } = useAuth()
@@ -227,6 +228,19 @@ export function RegisterForm() {
                 "Creer mon compte"
               )}
             </Button>
+
+            {/* Separateur "ou" entre email/password et Google OAuth */}
+            <div className="relative w-full">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">ou</span>
+              </div>
+            </div>
+
+            {/* Bouton d'inscription Google OAuth — redirige vers /choix-role */}
+            <GoogleSignInButton callbackURL="/choix-role" />
 
             {/* Lien vers la connexion */}
             <p className="text-center text-sm text-muted-foreground">

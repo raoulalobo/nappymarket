@@ -26,7 +26,24 @@ export const auth = betterAuth({
     provider: "postgresql",
   }),
 
-  // Provider email/password (seul mode d'authentification pour le MVP)
+  // Provider social : Google OAuth 2.0
+  // Permet aux utilisateurs de se connecter avec leur compte Google.
+  // Le role n'est PAS defini ici — il sera choisi apres sur /choix-role
+  // lors de la premiere connexion Google.
+  socialProviders: {
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      // Mapper les champs du profil Google vers notre modele User
+      mapProfileToUser: (profile) => ({
+        firstName: profile.given_name ?? "",
+        lastName: profile.family_name ?? "",
+        // Le role reste CLIENT par defaut, sera modifie sur /choix-role
+      }),
+    },
+  },
+
+  // Provider email/password
   emailAndPassword: {
     enabled: true,
     // Longueur minimale du mot de passe (8 caracteres)

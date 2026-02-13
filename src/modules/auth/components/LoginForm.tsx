@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/form"
 import { loginSchema, type LoginSchema } from "@/modules/auth/schemas/auth-schemas"
 import { useAuth } from "@/modules/auth/hooks/useAuth"
+import { GoogleSignInButton } from "@/modules/auth/components/GoogleSignInButton"
 
 export function LoginForm() {
   const { login, isLoading } = useAuth()
@@ -132,6 +133,19 @@ export function LoginForm() {
                 "Se connecter"
               )}
             </Button>
+
+            {/* Separateur "ou" entre email/password et Google OAuth */}
+            <div className="relative w-full">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">ou</span>
+              </div>
+            </div>
+
+            {/* Bouton de connexion Google OAuth */}
+            <GoogleSignInButton callbackURL="/choix-role" />
 
             {/* Lien vers l'inscription */}
             <p className="text-center text-sm text-muted-foreground">
