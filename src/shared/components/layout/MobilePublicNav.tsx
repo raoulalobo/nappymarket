@@ -12,6 +12,8 @@
  *   - Utilise usePathname() pour surligner le lien actif
  *   - Le drawer se ferme automatiquement au clic sur un lien
  *   - Visible uniquement en mobile (md:hidden), le Header desktop prend le relais
+ *   - Sur les pages dashboard, le Header recoit MobileSidebar a la place
+ *     de ce composant via le prop `mobileNav` (injection de dependance)
  *   - Les boutons Connexion/Inscription sont affiches dans le drawer uniquement
  *     pour les visiteurs non connectes (en complement du UserMenu)
  *

@@ -1,13 +1,16 @@
 /**
- * Header — Barre de navigation principale
+ * Header — Barre de navigation principale (sticky)
  *
- * Role : Afficher le logo, les liens de navigation et le menu utilisateur.
- *        S'adapte selon l'etat de connexion (visiteur vs connecte).
+ * Role : Afficher le logo, le hamburger mobile, les liens de navigation
+ *        desktop et le menu utilisateur. S'adapte selon le contexte :
+ *        - Pages publiques : MobilePublicNav (hamburger par defaut)
+ *        - Pages dashboard : MobileSidebar injecte via le prop `mobileNav`
  *
  * Interactions :
- *   - Visible sur toutes les pages publiques et les espaces connectes
+ *   - Visible sur toutes les pages (publiques et connectees)
  *   - UserMenu gere l'affichage conditionnel (boutons auth / dropdown user)
- *   - MobilePublicNav : hamburger + drawer Sheet en mobile (<md)
+ *   - Le prop `mobileNav` permet d'injecter un hamburger specifique au contexte
+ *     (par defaut : MobilePublicNav pour les pages publiques)
  *   - Le logo redirige vers l'accueil
  *
  * Structure mobile :
@@ -17,21 +20,32 @@
  *   [Logo] [Inspirations .............. ] [UserMenu]
  *
  * Exemple :
+ *   // Pages publiques (hamburger par defaut)
  *   <Header />
+ *
+ *   // Pages dashboard (hamburger dashboard injecte)
+ *   <Header mobileNav={<MobileSidebar />} />
  */
 import Link from "next/link"
 import { APP_NAME } from "@/shared/lib/constants"
 import { UserMenu } from "./UserMenu"
 import { MobilePublicNav } from "./MobilePublicNav"
 
-export function Header() {
+interface HeaderProps {
+  /** Composant hamburger mobile a afficher (defaut : MobilePublicNav) */
+  mobileNav?: React.ReactNode
+}
+
+export function Header({ mobileNav }: HeaderProps) {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         {/* Partie gauche : hamburger mobile + logo */}
         <div className="flex items-center gap-2">
-          {/* Hamburger — visible uniquement en mobile (<md) */}
-          <MobilePublicNav />
+          {/* Hamburger — visible uniquement en mobile (<md).
+              Par defaut : MobilePublicNav (pages publiques).
+              Sur le dashboard : MobileSidebar injecte via le prop. */}
+          {mobileNav ?? <MobilePublicNav />}
 
           {/* Logo et nom de l'application */}
           <Link href="/" className="flex items-center gap-2">

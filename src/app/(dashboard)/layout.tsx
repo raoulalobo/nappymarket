@@ -4,26 +4,24 @@
  * Role : Fournir le layout commun aux pages qui necessitent une
  *        authentification. Verifie la session cote serveur et redirige
  *        vers /connexion si l'utilisateur n'est pas connecte.
- *        Affiche une sidebar de navigation a gauche (desktop) et un
- *        drawer mobile (bouton hamburger).
+ *        Affiche une sidebar de navigation a gauche (desktop) et le
+ *        hamburger dashboard dans le Header sticky (mobile).
  *
  * Interactions :
  *   - Enveloppe toutes les pages sous /(dashboard)/*
  *   - Utilise getSession() pour verifier l'authentification cote serveur
- *   - Le Header est affiche en haut (full width)
+ *   - Le Header recoit le MobileSidebar via le prop `mobileNav`
+ *     pour integrer le hamburger dashboard dans la navbar sticky
  *   - DashboardSidebar : sidebar fixe a gauche (visible md+)
- *   - MobileSidebar : bouton hamburger + drawer Sheet (visible <md)
  *   - Le middleware a deja verifie la presence du cookie de session,
  *     ce layout fait la verification complete (validite de la session)
  *
  * Structure :
  *   ┌────────────────────────────────────┐
- *   │ Header (full width)               │
+ *   │ Header [☰ dashboard] (sticky)     │
  *   ├──────────┬─────────────────────────┤
- *   │ Sidebar  │ MobileSidebar (hamburger│
- *   │ (desktop)│  + drawer en mobile)    │
- *   │          │                         │
- *   │          │  {children}             │
+ *   │ Sidebar  │                         │
+ *   │ (desktop)│  {children}             │
  *   │          │                         │
  *   ├──────────┴─────────────────────────┤
  *   │ Footer (full width)               │
@@ -52,27 +50,16 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex min-h-screen flex-col">
-      {/* Header en haut, full width */}
-      <Header />
+      {/* Header sticky avec hamburger dashboard integre en mobile */}
+      <Header mobileNav={<MobileSidebar />} />
 
-      {/* Zone centrale : sidebar desktop + contenu + hamburger mobile */}
+      {/* Zone centrale : sidebar desktop + contenu */}
       <div className="flex flex-1">
         {/* Sidebar fixe a gauche — visible uniquement sur desktop (md+) */}
         <DashboardSidebar />
 
-        {/* Contenu principal + bouton hamburger mobile en haut */}
-        <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
-          {/* Barre mobile avec bouton hamburger — visible uniquement en mobile (<md) */}
-          <div className="flex items-center border-b px-4 py-2 md:hidden">
-            <MobileSidebar />
-            <span className="ml-2 text-sm font-medium text-muted-foreground">
-              Menu
-            </span>
-          </div>
-
-          {/* Contenu de la page */}
-          <main className="flex-1">{children}</main>
-        </div>
+        {/* Contenu principal */}
+        <main className="flex-1 min-w-0 overflow-hidden">{children}</main>
       </div>
 
       {/* Footer en bas, full width */}

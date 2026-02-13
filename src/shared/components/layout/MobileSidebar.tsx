@@ -12,11 +12,12 @@
  *   - Lit les liens depuis NAVIGATION_ITEMS (src/shared/lib/navigation.ts)
  *   - Le drawer se ferme automatiquement quand un lien est clique
  *   - Visible uniquement en mobile (md:hidden)
- *   - Place dans DashboardLayout (pas dans le Header)
+ *   - Injecte dans le Header via le prop `mobileNav` depuis DashboardLayout,
+ *     ce qui integre le hamburger dans la navbar sticky (toujours accessible au scroll)
  *
  * Exemple :
- *   // Dans DashboardLayout
- *   <MobileSidebar />
+ *   // Dans DashboardLayout — injecte dans le Header sticky
+ *   <Header mobileNav={<MobileSidebar />} />
  */
 "use client"
 
