@@ -51,7 +51,7 @@ function SkeletonCard() {
 
 export function SearchResults() {
   const { data, isLoading, error } = useSearchStylists()
-  const { latitude, longitude } = useSearchFiltersStore()
+  const { city, latitude, longitude } = useSearchFiltersStore()
 
   // Etat initial : pas de ville selectionnee
   if (latitude === null || longitude === null) {
@@ -114,6 +114,7 @@ export function SearchResults() {
       <p className="text-sm text-muted-foreground">
         <span className="font-medium text-foreground">{data.totalCount}</span> coiffeuse
         {data.totalCount > 1 ? "s" : ""} trouvee{data.totalCount > 1 ? "s" : ""}
+        {city && <> a <span className="font-medium text-foreground">{city}</span></>}
       </p>
 
       {/* Grille de resultats */}
