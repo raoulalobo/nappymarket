@@ -17,7 +17,7 @@
 "use client"
 
 import Link from "next/link"
-import { LogOut, User, LayoutDashboard, Scissors } from "lucide-react"
+import { LogOut, User, LayoutDashboard, Scissors, LogIn, UserPlus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -90,11 +90,18 @@ export function UserMenu() {
   if (!isAuthenticated || !user) {
     return (
       <div className="flex items-center gap-2">
+        {/* Texte visible a partir de sm, icones seules sur tres petits ecrans */}
         <Button variant="ghost" size="sm" asChild>
-          <Link href="/connexion">Connexion</Link>
+          <Link href="/connexion">
+            <LogIn className="h-4 w-4 sm:hidden" />
+            <span className="hidden sm:inline">Connexion</span>
+          </Link>
         </Button>
         <Button size="sm" asChild>
-          <Link href="/inscription">Inscription</Link>
+          <Link href="/inscription">
+            <UserPlus className="h-4 w-4 sm:hidden" />
+            <span className="hidden sm:inline">Inscription</span>
+          </Link>
         </Button>
       </div>
     )
