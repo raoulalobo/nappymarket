@@ -2,8 +2,10 @@
  * Script de migration : geocoder les profils coiffeuses existants
  *
  * Les profils crees avant l'ajout du geocodage dans updateStylistProfile()
- * ont latitude=null et longitude=null. Ce script appelle l'API Adresse Gouv
+ * ont latitude=null et longitude=null. Ce script appelle Mapbox Geocoding API
  * pour chaque profil sans coordonnees et met a jour la BDD.
+ *
+ * Prerequis : NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN defini dans .env.local
  *
  * Usage : npx tsx scripts/geocode-existing-profiles.ts
  */
@@ -17,6 +19,13 @@ const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL })
 const db = new PrismaClient({ adapter })
 
 async function main() {
+  // Verifier que le token Mapbox est present
+  const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
+  if (!mapboxToken) {
+    console.error("[ERREUR] NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN non defini dans .env.local")
+    process.exit(1)
+  }
+
   // Trouver les profils sans coordonnees GPS
   const profiles = await db.stylistProfile.findMany({
     where: {
@@ -30,7 +39,12 @@ async function main() {
 
   for (const profile of profiles) {
     try {
-      const url = `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(profile.city)}&type=municipality&limit=1`
+      // Mapbox Geocoding v5 :
+      // - types=place : villes uniquement
+      // - language=fr : labels en francais
+      // - country=fr : France uniquement
+      // - limit=1 : un seul resultat
+      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(profile.city)}.json?access_token=${mapboxToken}&types=place&limit=1&language=fr&country=fr`
       const response = await fetch(url, { signal: AbortSignal.timeout(5000) })
 
       if (!response.ok) {
@@ -44,8 +58,8 @@ async function main() {
         continue
       }
 
-      // GeoJSON : [longitude, latitude]
-      const [lng, lat] = data.features[0].geometry.coordinates
+      // Mapbox : center = [longitude, latitude]
+      const [lng, lat] = data.features[0].center
 
       await db.stylistProfile.update({
         where: { id: profile.id },

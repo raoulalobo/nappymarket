@@ -300,6 +300,68 @@ validation de la precedente.
 
 ---
 
+## Phase 9 — Internationalisation (future)
+
+**Objectif** : Etendre NappyMarket au-dela de la France (Belgique, Suisse,
+              Afrique, DOM-TOM, etc.) en adaptant le geocoding, la carte
+              et les contenus multilingues.
+
+### 9.1 Geocoding & Autocompletion internationale
+
+**Probleme** : L'API Adresse Gouv ne couvre que la France metropolitaine.
+Pour une expansion internationale, il faut un service de geocoding mondial.
+
+**Architecture actuelle (decouplage)** :
+- Le geocoding (API Adresse Gouv) est isole dans `useAddressAutocomplete.ts`
+- Le store Zustand recoit `{ city, latitude, longitude }` — format generique
+- La carte (Leaflet) recoit les coordonnees du store — independant du geocoding
+- **Changer de service de geocoding n'impacte QUE le hook d'autocompletion**
+
+**Alternatives evaluees** :
+
+| Service | Gratuit | Couverture | Autocompletion | Limites gratuites |
+|---|---|---|---|---|
+| **Nominatim (OSM)** | 100% | Monde | Oui | 1 req/s (suffisant avec debounce) |
+| **Photon (Komoot)** | 100% | Monde | Oui | Self-host ou API publique |
+| **Mapbox Geocoding** | Freemium | Monde | Excellente | 100k req/mois |
+| **MapTiler Geocoding** | Freemium | Monde | Oui | 100k req/mois |
+| **LocationIQ** | Freemium | Monde | Oui | 5k req/jour |
+| **Google Places API** | Non | Monde | Excellente | ~11k req/mois (200$ credits) |
+| **Geoapify** | Freemium | Monde | Oui | 3k req/jour |
+
+**Strategie recommandee : approche hybride**
+- Garder API Adresse Gouv pour la France (meilleure precision)
+- Ajouter Nominatim ou Mapbox pour les autres pays
+- Router dans `useAddressAutocomplete.ts` selon le pays cible
+- Le format de sortie `AddressSuggestion[]` reste identique
+
+### 9.2 Carte interactive
+
+- Leaflet/OSM fonctionne deja a l'international (pas de changement requis)
+- Alternative future : Mapbox GL JS ou MapLibre (si besoin de tuiles stylisees)
+- Le decoupage carte/geocoding permet de migrer independamment
+
+### 9.3 Contenus multilingues (i18n)
+
+- Ajouter next-intl ou next-i18next
+- Externaliser tous les textes en fichiers de traduction
+- Adapter les schemas Zod (messages d'erreur par locale)
+
+### 9.4 Devise & Paiement
+
+- Stripe supporte deja les devises internationales
+- Adapter le format de prix selon la locale (EUR, XOF, CHF...)
+
+### Taches
+
+- [ ] 9.1 Abstraire le geocoding (interface commune, routing par pays)
+- [ ] 9.2 Integrer un service de geocoding international
+- [ ] 9.3 Configurer i18n (next-intl)
+- [ ] 9.4 Adapter Stripe pour les devises internationales
+- [ ] 9.5 Tester avec des adresses hors France
+
+---
+
 ## Resume des Phases
 
 | Phase | Nom                          | Dependances | Priorite | Statut    |
@@ -312,6 +374,7 @@ validation de la precedente.
 | 6     | Paiement Stripe              | Phase 5     | Haute    | A faire   |
 | 7     | Messagerie Temps Reel        | Phase 2     | Moyenne  | A faire   |
 | 8     | Admin Dashboard & Polish     | Toutes      | Moyenne  | A faire   |
+| 9     | Internationalisation         | Phase 8     | Basse    | Future    |
 
 > **Note** : La Phase 7 (Messagerie) peut etre developpee en parallele
 > des Phases 4-6 car elle ne depend que de la Phase 2 (Auth).

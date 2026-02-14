@@ -96,12 +96,13 @@ export interface SearchResponse {
 }
 
 /**
- * AddressSuggestion — Suggestion retournee par l'API Adresse Gouv
+ * AddressSuggestion — Suggestion retournee par Mapbox Geocoding API
  *
- * Utilisee par le composant SearchBar pour l'autocompletion des villes.
+ * Utilisee par le composant SearchBar et BookingStepAddress pour l'autocompletion des villes.
+ * Le hook useAddressAutocomplete transforme la reponse Mapbox en ce type.
  *
  * Exemple :
- *   { label: "Paris 75001", city: "Paris", latitude: 48.8566, longitude: 2.3522, postcode: "75001" }
+ *   { label: "Paris, Île-de-France, France", city: "Paris", latitude: 48.8566, longitude: 2.3522, postcode: "75001" }
  */
 export interface AddressSuggestion {
   /** Label complet affiche dans le dropdown (ex: "Paris 75001") */

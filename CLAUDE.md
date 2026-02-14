@@ -29,7 +29,7 @@ partout en France.
 | **Tailwind CSS v4**      | Styling utilitaire                                      |
 | **shadcn/ui**            | Composants UI accessibles (base Radix UI)               |
 | **Leaflet + OSM**        | Carte interactive OpenStreetMap (recherche coiffeuses)  |
-| **API Adresse Gouv**     | Geocoding gratuit (api-adresse.data.gouv.fr)            |
+| **Mapbox Geocoding**     | Geocoding + autocompletion (api.mapbox.com)             |
 | **Resend + React Email** | Emails transactionnels (confirmation, rappels)          |
 | **Supabase Storage**     | Upload d'images (avatars, portfolio)                    |
 | **Vercel**               | Deploiement + CI/CD                                     |
@@ -42,7 +42,7 @@ partout en France.
 - **shadcn/ui** > NextUI/Mantine : composants copy-paste, personnalisation totale, pas de lock-in
 - **Supabase Storage** > UploadThing/Cloudinary : deja dans la stack, gratuit 1GB, CDN integre
 - **Leaflet/OSM** > Google Maps : gratuit, open-source, pas de cle API requise
-- **API Adresse Gouv** > Google Geocoding : gratuit, sans cle API, optimise pour la France
+- **Mapbox Geocoding** > API Adresse Gouv : couverture mondiale, 100k req/mois gratuites, preparation internationalisation
 - **Resend** > SMTP : API moderne, templates React (react.email), 3000 emails/mois gratuits
 - **TanStack Query** > fetch dans useEffect : cache automatique, deduplication, revalidation,
   background refetch, optimistic updates, devtools. Zustand garde uniquement le state UI pur
@@ -771,6 +771,9 @@ DIRECT_URL=                      # Connection directe (migrations Prisma)
 # Better Auth
 BETTER_AUTH_SECRET=
 BETTER_AUTH_URL=http://localhost:3000
+
+# Mapbox (Geocoding / Autocompletion)
+NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN=
 
 # Stripe
 STRIPE_SECRET_KEY=
