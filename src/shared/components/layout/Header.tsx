@@ -30,6 +30,7 @@ import Link from "next/link"
 import { APP_NAME } from "@/shared/lib/constants"
 import { UserMenu } from "./UserMenu"
 import { MobilePublicNav } from "./MobilePublicNav"
+import { ContactModal } from "./ContactModal"
 
 interface HeaderProps {
   /** Composant hamburger mobile a afficher (defaut : MobilePublicNav) */
@@ -61,6 +62,8 @@ export function Header({ mobileNav }: HeaderProps) {
           >
             Inspirations
           </Link>
+          {/* Bouton Contact : ouvre le modal formulaire de contact */}
+          <ContactModal />
         </nav>
 
         {/* Menu utilisateur (connecte: dropdown, deconnecte: boutons auth) */}

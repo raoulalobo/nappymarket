@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/sheet"
 import { useSession } from "@/modules/auth/hooks/useSession"
 import { APP_NAME } from "@/shared/lib/constants"
+import { ContactModal } from "./ContactModal"
 
 /**
  * Liens de navigation publics affiches dans le drawer mobile.
@@ -111,6 +112,10 @@ export function MobilePublicNav() {
                 </Link>
               )
             })}
+
+            {/* Bouton Contact mobile — ouvre le modal formulaire de contact */}
+            {/* Style identique aux liens PUBLIC_NAV_LINKS via isMobileNavItem */}
+            <ContactModal isMobileNavItem />
           </nav>
 
           {/* Boutons Connexion / Inscription — affiches uniquement pour les visiteurs */}

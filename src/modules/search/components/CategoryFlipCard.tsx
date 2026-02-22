@@ -176,7 +176,7 @@ export function CategoryFlipCard({
         <div
           className={cn(
             "absolute inset-0 overflow-hidden rounded-2xl",
-            "bg-gray-900 p-4",
+            "bg-card p-4 border border-border",
             // Cacher la face arriere quand on regarde la face avant
             "[backface-visibility:hidden]",
             // Pre-retournee : sera a l'endroit apres le flip de 180deg
@@ -187,7 +187,7 @@ export function CategoryFlipCard({
         >
           {/* Bouton fermeture (×) — retourne a la face avant */}
           <button
-            className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/30 transition-colors"
+            className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full bg-muted text-muted-foreground hover:bg-muted/70 transition-colors"
             onClick={(e) => {
               e.stopPropagation() // Ne pas remonter au conteneur
               setIsFlipped(false)
@@ -198,7 +198,7 @@ export function CategoryFlipCard({
           </button>
 
           {/* Titre : nom de la categorie parente */}
-          <p className="mb-3 pr-8 text-sm font-semibold text-white">
+          <p className="mb-3 pr-8 text-sm font-semibold text-card-foreground">
             {category.name}
           </p>
 
@@ -208,11 +208,11 @@ export function CategoryFlipCard({
               <li key={child.id}>
                 <Link
                   href={`/recherche?categoryId=${child.id}`}
-                  className="flex items-center justify-between rounded-lg bg-white/10 px-3 py-2 text-xs text-white transition-colors hover:bg-white/20"
+                  className="flex items-center justify-between rounded-lg bg-secondary px-3 py-2 text-xs text-secondary-foreground transition-colors hover:bg-primary/10 hover:text-primary"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <span className="font-medium">{child.name}</span>
-                  <ChevronRight className="h-3 w-3 shrink-0 text-white/60" />
+                  <ChevronRight className="h-3 w-3 shrink-0 text-muted-foreground" />
                 </Link>
               </li>
             ))}
@@ -221,7 +221,7 @@ export function CategoryFlipCard({
           {/* Lien "Voir tout" — pointe vers la categorie racine */}
           <Link
             href={`/recherche?categoryId=${category.id}`}
-            className="mt-3 flex items-center justify-center gap-1 rounded-lg border border-white/20 py-2 text-xs font-medium text-white/80 transition-colors hover:border-white/40 hover:text-white"
+            className="mt-3 flex items-center justify-center gap-1 rounded-lg border border-primary/40 py-2 text-xs font-medium text-primary transition-colors hover:border-primary hover:bg-primary/5"
             onClick={(e) => e.stopPropagation()}
           >
             Voir tout — {category.name}
