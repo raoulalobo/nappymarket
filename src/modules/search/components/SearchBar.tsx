@@ -48,8 +48,30 @@ export function SearchBar({ variant = "default", onCitySelected }: SearchBarProp
   // Hook d'autocompletion debouncee (300ms)
   const { suggestions, isLoading } = useAddressAutocomplete(query)
 
-  // Store Zustand pour mettre a jour les filtres
+  // Store Zustand pour mettre a jour et lire les filtres
   const setCity = useSearchFiltersStore((state) => state.setCity)
+  // Ville courante dans le store (peut etre remplie depuis les params URL par SearchPageClient)
+  const cityFromStore = useSearchFiltersStore((state) => state.city)
+
+  /**
+   * Synchroniser le champ texte avec le store quand la ville change de l'extérieur.
+   *
+   * Cas typique : SearchPageClient lit ?city=Lyon dans l'URL et appelle setCity(),
+   * mais le query local du SearchBar reste "" car il n'écoute pas le store en lecture.
+   * Ce useEffect corrige ce décalage sans créer de boucle infinie :
+   *   - handleSelect met d'abord setQuery puis setCity → après setCity, cityFromStore
+   *     égale déjà query, donc la condition est fausse et setQuery n'est pas rappelé.
+   *   - Depuis l'extérieur (URL params), cityFromStore devient non-vide alors que
+   *     query est encore "" → la condition est vraie → setQuery affiche la ville.
+   */
+  useEffect(() => {
+    if (cityFromStore && query !== cityFromStore) {
+      setQuery(cityFromStore)
+    }
+    // Intentionnellement sans `query` en dep : on veut juste réagir aux changements
+    // du store, pas re-déclencher l'effet à chaque frappe de l'utilisateur.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cityFromStore])
 
   // Ouvrir le dropdown quand il y a des suggestions
   useEffect(() => {
@@ -194,7 +216,7 @@ export function SearchBar({ variant = "default", onCitySelected }: SearchBarProp
         >
           {suggestions.map((suggestion, index) => (
             <button
-              key={`${suggestion.city}-${suggestion.postcode}`}
+              key={`${suggestion.latitude}-${suggestion.longitude}`}
               type="button"
               className={cn(
                 "flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-accent",
