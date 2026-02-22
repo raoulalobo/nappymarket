@@ -176,7 +176,11 @@ export function CategoryFlipCard({
         <div
           className={cn(
             "absolute inset-0 overflow-hidden rounded-2xl",
+            // Fond blanc avec grille fine cinnamon (#D4956A à 12% opacité)
+            // Motif CSS pur : deux gradients perpendiculaires de 1px espacés de 20px
             "bg-card p-4 border border-border",
+            "bg-[linear-gradient(oklch(0.72_0.1_55_/_0.12)_1px,transparent_1px),linear-gradient(to_right,oklch(0.72_0.1_55_/_0.12)_1px,transparent_1px)]",
+            "[background-size:20px_20px]",
             // Cacher la face arriere quand on regarde la face avant
             "[backface-visibility:hidden]",
             // Pre-retournee : sera a l'endroit apres le flip de 180deg
