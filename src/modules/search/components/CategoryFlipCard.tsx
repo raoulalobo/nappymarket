@@ -9,8 +9,9 @@
  * Interactions :
  *   - Lit les donnees de categorie depuis ActiveCategoryWithChildren
  *     (fourni par getActiveCategories dans search-actions.ts)
- *   - Sous-categories : lien vers /recherche?categoryId=child.id
- *   - Lien "Voir tout" : /recherche?categoryId=parent.id
+ *   - Sous-categories : ouvre CategoryCityModal pour forcer la sélection de ville
+ *     avant redirection vers /recherche?city=...&lat=...&lng=...&categoryId=child.id
+ *   - Bouton "Voir tout" : meme comportement avec l'ID de la categorie racine
  *   - Aucune interaction avec les stores Zustand (composant autonome)
  *
  * Animation :
@@ -18,7 +19,7 @@
  *     [transform-style:preserve-3d], [backface-visibility:hidden])
  *   - Duree : 500ms, easing : ease-in-out
  *   - Face avant : image + gradient + nom + compteur
- *   - Face arriere : liste des sous-categories + lien "Voir tout"
+ *   - Face arriere : liste des sous-categories + bouton "Voir tout"
  *
  * Exemple :
  *   <CategoryFlipCard
@@ -30,11 +31,11 @@
 "use client"
 
 import { useState } from "react"
-import Link from "next/link"
 import Image from "next/image"
 import { X, ChevronRight, Layers } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { ActiveCategoryWithChildren } from "../actions/search-actions"
+import { CategoryCityModal } from "./CategoryCityModal"
 
 // -------------------------------------------------------------------------- //
 // Types                                                                        //
@@ -61,46 +62,79 @@ export function CategoryFlipCard({
   // Etat local : true = face arriere visible, false = face avant visible
   const [isFlipped, setIsFlipped] = useState(false)
 
+  // Etat du modal de sélection de ville (partagé Cas 1 et Cas 2)
+  // pendingCategoryId  : ID de la catégorie/sous-catégorie sélectionnée
+  // pendingCategoryName: Nom affiché dans le titre du modal
+  const [modalOpen, setModalOpen] = useState(false)
+  const [pendingCategoryId, setPendingCategoryId] = useState<string | null>(null)
+  const [pendingCategoryName, setPendingCategoryName] = useState<string>("")
+
+  /**
+   * openModal — Ouvre le CategoryCityModal pour la catégorie donnée.
+   * Mutualisé entre Cas 1 (sans enfants) et Cas 2 (face arrière).
+   */
+  function openModal(id: string, name: string) {
+    setPendingCategoryId(id)
+    setPendingCategoryName(name)
+    setModalOpen(true)
+  }
+
   const hasChildren = category.children.length > 0
 
   // ------------------------------------------------------------------ //
-  // Cas 1 : Categorie sans sous-categories — lien direct (comportement  //
-  //          identique a l'implementation originale)                    //
+  // Cas 1 : Categorie sans sous-categories — ouvre le modal de ville   //
+  //          (auparavant lien direct, inutilisable sans lat/lng)       //
   // ------------------------------------------------------------------ //
   if (!hasChildren) {
     return (
-      <Link
-        href={`/recherche?categoryId=${category.id}`}
-        className="group"
-      >
-        {/* Carte image rectangulaire (paysage 3:2) */}
-        <div className="relative aspect-[3/2] overflow-hidden rounded-2xl shadow-sm transition-shadow duration-300 group-hover:shadow-lg">
-          {/* Image de fond */}
-          <Image
-            src={imageSrc}
-            alt={category.name}
-            fill
-            sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
-            priority={priority}
-            className="object-cover transition-transform duration-500 group-hover:scale-105"
-          />
+      <>
+        {/* Bouton cliquable : ouvre le modal de sélection de ville */}
+        {/* group permet l'effet hover sur l'image enfant */}
+        <button
+          type="button"
+          className="group w-full text-left"
+          onClick={() => openModal(category.id, category.name)}
+          aria-label={`Rechercher des coiffeuses pour ${category.name}`}
+        >
+          {/* Carte image rectangulaire (paysage 3:2) */}
+          <div className="relative aspect-[3/2] overflow-hidden rounded-2xl shadow-sm transition-shadow duration-300 group-hover:shadow-lg">
+            {/* Image de fond */}
+            <Image
+              src={imageSrc}
+              alt={category.name}
+              fill
+              sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+              priority={priority}
+              className="object-cover transition-transform duration-500 group-hover:scale-105"
+            />
 
-          {/* Gradient overlay : noir en bas pour lisibilite du texte */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+            {/* Gradient overlay : noir en bas pour lisibilite du texte */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
 
-          {/* Contenu texte positionne en bas */}
-          <div className="absolute inset-x-0 bottom-0 p-4">
-            <h3 className="text-base font-semibold text-white md:text-lg">
-              {category.name}
-            </h3>
-            {category.serviceCount > 0 && (
-              <p className="mt-0.5 text-xs text-white/80 md:text-sm">
-                {category.serviceCount} prestation{category.serviceCount > 1 ? "s" : ""}
-              </p>
-            )}
+            {/* Contenu texte positionne en bas */}
+            <div className="absolute inset-x-0 bottom-0 p-4">
+              <h3 className="text-base font-semibold text-white md:text-lg">
+                {category.name}
+              </h3>
+              {category.serviceCount > 0 && (
+                <p className="mt-0.5 text-xs text-white/80 md:text-sm">
+                  {category.serviceCount} prestation{category.serviceCount > 1 ? "s" : ""}
+                </p>
+              )}
+            </div>
           </div>
-        </div>
-      </Link>
+        </button>
+
+        {/* Modal de sélection de ville — rendu conditionnel pour éviter les portals inutiles */}
+        {pendingCategoryId && (
+          <CategoryCityModal
+            open={modalOpen}
+            onOpenChange={setModalOpen}
+            categoryId={pendingCategoryId}
+            categoryName={pendingCategoryName}
+          />
+        )}
+      </>
     )
   }
 
@@ -176,11 +210,11 @@ export function CategoryFlipCard({
         <div
           className={cn(
             "absolute inset-0 overflow-hidden rounded-2xl",
-            // Fond blanc avec grille fine cinnamon (#D4956A à 12% opacité)
-            // Motif CSS pur : deux gradients perpendiculaires de 1px espacés de 20px
+            // Dots minimaliste : fond blanc + points cinnamon en radial-gradient CSS pur
+            // Cercles de 1.5px espacés de 16px — discrets, texturés, identité NappyMarket
             "bg-card p-4 border border-border",
-            "bg-[linear-gradient(oklch(0.72_0.1_55_/_0.12)_1px,transparent_1px),linear-gradient(to_right,oklch(0.72_0.1_55_/_0.12)_1px,transparent_1px)]",
-            "[background-size:20px_20px]",
+            "bg-[radial-gradient(oklch(0.72_0.1_55_/_0.20)_1.5px,transparent_1.5px)]",
+            "[background-size:16px_16px]",
             // Cacher la face arriere quand on regarde la face avant
             "[backface-visibility:hidden]",
             // Pre-retournee : sera a l'endroit apres le flip de 180deg
@@ -206,30 +240,48 @@ export function CategoryFlipCard({
             {category.name}
           </p>
 
-          {/* Liste des sous-categories : chips cliquables */}
+          {/* Liste des sous-categories : boutons qui ouvrent le modal de ville */}
+          {/* (auparavant des <Link>, inutilisables sans lat/lng pour Haversine) */}
           <ul className="flex flex-col gap-1.5">
             {category.children.map((child) => (
               <li key={child.id}>
-                <Link
-                  href={`/recherche?categoryId=${child.id}`}
-                  className="flex items-center justify-between rounded-lg bg-secondary px-3 py-2 text-xs text-secondary-foreground transition-colors hover:bg-primary/10 hover:text-primary"
-                  onClick={(e) => e.stopPropagation()}
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-between rounded-lg bg-secondary px-3 py-2 text-xs text-secondary-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+                  onClick={(e) => {
+                    e.stopPropagation() // Ne pas déclencher le flip du conteneur
+                    openModal(child.id, child.name)
+                  }}
                 >
                   <span className="font-medium">{child.name}</span>
                   <ChevronRight className="h-3 w-3 shrink-0 text-muted-foreground" />
-                </Link>
+                </button>
               </li>
             ))}
           </ul>
 
-          {/* Lien "Voir tout" — pointe vers la categorie racine */}
-          <Link
-            href={`/recherche?categoryId=${category.id}`}
-            className="mt-3 flex items-center justify-center gap-1 rounded-lg border border-primary/40 py-2 text-xs font-medium text-primary transition-colors hover:border-primary hover:bg-primary/5"
-            onClick={(e) => e.stopPropagation()}
+          {/* Bouton "Voir tout" — ouvre le modal avec l'ID de la catégorie racine */}
+          <button
+            type="button"
+            className="mt-3 flex w-full items-center justify-center gap-1 rounded-lg border border-primary/40 py-2 text-xs font-medium text-primary transition-colors hover:border-primary hover:bg-primary/5"
+            onClick={(e) => {
+              e.stopPropagation() // Ne pas déclencher le flip du conteneur
+              openModal(category.id, category.name)
+            }}
           >
             Voir tout — {category.name}
-          </Link>
+          </button>
+
+          {/* Modal de sélection de ville — rendu conditionnel */}
+          {/* Injecté dans la face arrière pour rester dans le même arbre DOM */}
+          {pendingCategoryId && (
+            <CategoryCityModal
+              open={modalOpen}
+              onOpenChange={setModalOpen}
+              categoryId={pendingCategoryId}
+              categoryName={pendingCategoryName}
+            />
+          )}
         </div>
       </div>
     </div>
