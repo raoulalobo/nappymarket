@@ -225,20 +225,29 @@ model ClientProfile {
   @@map("client_profiles")
 }
 
-/// Categorie de prestation definie par l'admin
+/// Categorie de prestation definie par l'admin (systeme hierarchique 2 niveaux)
 ///
 /// Interactions :
 ///   - CRUD par l'admin dans le back-office (module admin)
 ///   - Les coiffeuses selectionnent les categories qu'elles proposent
+///   - Relation self-referential : parentId NULL = categorie racine,
+///     parentId renseigne = sous-categorie (max 2 niveaux)
 ///
-/// Exemples : "Tresses", "Locks / Dreadlocks", "Tissage / Weaving",
-///            "Crochet braids", "Nattes collees", "Coloration"
+/// Exemples racines   : "Tresses", "Locks / Dreadlocks", "Tissage / Weaving"
+/// Exemples sous-cat  : "Box Braids" (parent: "Tresses"), "Cornrows" (parent: "Tresses")
 model ServiceCategory {
   id          String  @id @default(cuid())
   name        String  @unique
   description String?
   imageUrl    String?
   isActive    Boolean @default(true)
+
+  // Relation self-referential pour la hierarchie parent / enfants
+  // parentId NULL  = categorie racine (visible en en-tete du tableau admin)
+  // parentId defini = sous-categorie (affichee en retrait sous sa parente)
+  parentId String?
+  parent   ServiceCategory?  @relation("SubCategories", fields: [parentId], references: [id])
+  children ServiceCategory[] @relation("SubCategories")
 
   services StylistService[]
 

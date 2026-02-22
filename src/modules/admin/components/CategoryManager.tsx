@@ -1,28 +1,34 @@
 /**
- * CategoryManager — Gestion des categories de prestations (admin)
+ * CategoryManager — Gestion hierarchique des categories de prestations (admin)
  *
  * Role : Permettre a l'administrateur de creer, modifier, activer/desactiver
- *        et supprimer des categories de services sur la marketplace.
- *        Affiche la liste des categories dans un tableau avec actions en ligne.
+ *        et supprimer des categories et sous-categories de services.
+ *        Affiche un tableau hierarchique : les categories parentes en gras,
+ *        leurs sous-categories indentees (avec le prefixe ↳) en dessous.
+ *
+ * Hierarchie (2 niveaux max) :
+ *   - Tresses              (racine)
+ *     ↳ Box Braids         (sous-categorie)
+ *     ↳ Cornrows           (sous-categorie)
+ *   - Locks / Dreadlocks   (racine)
  *
  * Interactions :
- *   - useAdminCategories()  : recupere la liste des categories (TanStack Query)
- *   - useCreateCategory()   : cree une nouvelle categorie
- *   - useUpdateCategory()   : modifie une categorie existante (nom, description, statut)
+ *   - useAdminCategories()  : recupere les categories racines + enfants (TanStack Query)
+ *   - useCreateCategory()   : cree une categorie ou sous-categorie
+ *   - useUpdateCategory()   : modifie une categorie (nom, description, statut)
  *   - useDeleteCategory()   : supprime une categorie apres confirmation
  *   - React Hook Form       : gestion du formulaire du dialog (creation / edition)
- *   - ImageUpload            : upload d'image vers Supabase Storage (bucket "categories")
- *   - Dialog shadcn/ui      : formulaire d'ajout/edition en modale
- *   - AlertDialog shadcn/ui : confirmation avant suppression
+ *   - ImageUpload           : upload vers Supabase Storage (categories racines uniquement)
+ *   - Dialog shadcn/ui      : formulaire d'ajout/edition en modale (titre dynamique)
+ *   - AlertDialog shadcn/ui : confirmation avant suppression (message adapte)
  *
  * Exemple :
- *   // Dans une page admin
  *   import { CategoryManager } from "@/modules/admin/components/CategoryManager"
  *   <CategoryManager />
  */
 "use client"
 
-import { useState, useCallback } from "react"
+import { Fragment, useState, useCallback } from "react"
 import { useForm } from "react-hook-form"
 import { Loader2, Plus, Pencil, Trash2, ImageIcon } from "lucide-react"
 
@@ -99,7 +105,8 @@ import {
 
 /**
  * Donnees du formulaire de creation/edition d'une categorie.
- * Le nom est obligatoire (min. 2 caracteres), la description est facultative.
+ * Seuls le nom et la description sont des champs React Hook Form.
+ * Le contexte (parentId, parentName) est stocke dans DialogState.
  */
 interface CategoryFormValues {
   name: string
@@ -107,15 +114,18 @@ interface CategoryFormValues {
 }
 
 /**
- * Etat du dialog :
- * - mode "create" : formulaire vide pour une nouvelle categorie
- * - mode "edit"   : formulaire pre-rempli avec les donnees de la categorie a modifier
- * - categoryId    : identifiant de la categorie en cours d'edition (null si creation)
+ * Etat du dialog de creation/edition :
+ * - mode       : "create" = formulaire vide | "edit" = pre-rempli
+ * - categoryId : ID de la categorie en edition (null en creation)
+ * - parentId   : ID du parent si sous-categorie (null = racine)
+ * - parentName : Nom du parent pour l'affichage dans le titre du dialog
  */
 interface DialogState {
   open: boolean
   mode: "create" | "edit"
   categoryId: string | null
+  parentId: string | null
+  parentName: string | null
 }
 
 // ---------------------------------------------------------------------------
@@ -134,9 +144,11 @@ export function CategoryManager() {
     open: false,
     mode: "create",
     categoryId: null,
+    parentId: null,
+    parentName: null,
   })
 
-  // --- URL de l'image de la categorie (stockee apres upload via ImageUpload) ---
+  // --- URL de l'image de la categorie (categories racines uniquement) ---
   const [imageUrl, setImageUrl] = useState<string | null>(null)
 
   // --- Etat du dialog de confirmation de suppression ---
@@ -144,59 +156,143 @@ export function CategoryManager() {
     open: boolean
     id: string
     name: string
-  }>({ open: false, id: "", name: "" })
+    /** true si la categorie est une racine avec au moins une sous-categorie */
+    hasChildren: boolean
+  }>({ open: false, id: "", name: "", hasChildren: false })
 
   // --- Configuration React Hook Form ---
-  // Pas de resolver Zod ici pour rester simple : validation inline via `register` rules.
   const form = useForm<CategoryFormValues>({
     defaultValues: { name: "", description: "" },
   })
 
-  // --- Ouvrir le dialog en mode "creation" ---
+  // ---------------------------------------------------------------------------
+  // Fonctions d'ouverture du dialog
+  // ---------------------------------------------------------------------------
+
+  /**
+   * openCreateDialog — Ouvrir le dialog pour une nouvelle categorie racine
+   */
   const openCreateDialog = useCallback(() => {
     form.reset({ name: "", description: "" })
     setImageUrl(null)
-    setDialogState({ open: true, mode: "create", categoryId: null })
+    setDialogState({
+      open: true,
+      mode: "create",
+      categoryId: null,
+      parentId: null,
+      parentName: null,
+    })
   }, [form])
 
-  // --- Ouvrir le dialog en mode "edition" avec les valeurs pre-remplies ---
+  /**
+   * openCreateSubDialog — Ouvrir le dialog pour une nouvelle sous-categorie
+   *
+   * Pre-remplit le contexte avec l'ID et le nom du parent.
+   * Le titre du dialog affichera "Nouvelle sous-categorie — {parentName}".
+   *
+   * @param parent - La categorie racine parente ({ id, name })
+   */
+  const openCreateSubDialog = useCallback(
+    (parent: { id: string; name: string }) => {
+      form.reset({ name: "", description: "" })
+      setImageUrl(null)
+      setDialogState({
+        open: true,
+        mode: "create",
+        categoryId: null,
+        parentId: parent.id,
+        parentName: parent.name,
+      })
+    },
+    [form]
+  )
+
+  /**
+   * openEditDialog — Ouvrir le dialog pre-rempli pour modifier une categorie
+   *
+   * Fonctionne pour les racines et les sous-categories.
+   * Si c'est une sous-categorie, retrouve le nom du parent dans la liste
+   * pour l'afficher dans le titre du dialog.
+   *
+   * @param category - La categorie a modifier (racine ou sous-categorie)
+   */
   const openEditDialog = useCallback(
-    (category: { id: string; name: string; description?: string | null; imageUrl?: string | null }) => {
+    (category: {
+      id: string
+      name: string
+      description: string | null
+      imageUrl: string | null
+      parentId: string | null
+    }) => {
       form.reset({
         name: category.name,
         description: category.description ?? "",
       })
       setImageUrl(category.imageUrl ?? null)
-      setDialogState({ open: true, mode: "edit", categoryId: category.id })
+
+      // Retrouver le nom du parent si c'est une sous-categorie
+      // (les racines sont dans `categories`, les enfants n'ont pas de `children`)
+      let parentName: string | null = null
+      if (category.parentId) {
+        const parent = categories.find((c) => c.id === category.parentId)
+        parentName = parent?.name ?? null
+      }
+
+      setDialogState({
+        open: true,
+        mode: "edit",
+        categoryId: category.id,
+        parentId: category.parentId,
+        parentName,
+      })
     },
-    [form]
+    [form, categories]
   )
 
-  // --- Fermer le dialog et reinitialiser le formulaire ---
+  /**
+   * closeDialog — Fermer le dialog et reinitialiser le formulaire
+   */
   const closeDialog = useCallback(() => {
-    setDialogState({ open: false, mode: "create", categoryId: null })
+    setDialogState({
+      open: false,
+      mode: "create",
+      categoryId: null,
+      parentId: null,
+      parentName: null,
+    })
     form.reset({ name: "", description: "" })
     setImageUrl(null)
   }, [form])
 
-  // --- Soumission du formulaire (creation ou edition) ---
+  // ---------------------------------------------------------------------------
+  // Soumission du formulaire
+  // ---------------------------------------------------------------------------
+
+  /**
+   * onSubmit — Creer ou mettre a jour une categorie
+   *
+   * En creation, inclut parentId si c'est une sous-categorie.
+   * En edition, ne modifie pas la relation parent/enfant.
+   * L'image n'est envoyee que pour les categories racines.
+   */
   const onSubmit = useCallback(
     async (data: CategoryFormValues) => {
       if (dialogState.mode === "create") {
-        // Creation d'une nouvelle categorie (avec image optionnelle)
         await createCategory({
           name: data.name,
           description: data.description || undefined,
-          imageUrl: imageUrl || undefined,
+          // Image uniquement pour les categories racines
+          imageUrl: dialogState.parentId ? undefined : (imageUrl || undefined),
+          parentId: dialogState.parentId ?? undefined,
         })
       } else if (dialogState.categoryId) {
-        // Mise a jour d'une categorie existante (imageUrl peut etre null pour supprimer)
         await updateCategory({
           id: dialogState.categoryId,
           input: {
             name: data.name,
             description: data.description || undefined,
-            imageUrl: imageUrl,
+            // Permettre de supprimer l'image (imageUrl null)
+            imageUrl: dialogState.parentId ? undefined : imageUrl,
           },
         })
       }
@@ -205,7 +301,13 @@ export function CategoryManager() {
     [dialogState, createCategory, updateCategory, closeDialog, imageUrl]
   )
 
-  // --- Basculer le statut actif/inactif d'une categorie ---
+  // ---------------------------------------------------------------------------
+  // Actions rapides (switch actif/inactif, suppression)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * handleToggleActive — Basculer le statut actif/inactif d'une categorie
+   */
   const handleToggleActive = useCallback(
     async (id: string, currentActive: boolean) => {
       await updateCategory({ id, input: { isActive: !currentActive } })
@@ -213,16 +315,42 @@ export function CategoryManager() {
     [updateCategory]
   )
 
-  // --- Confirmer la suppression d'une categorie ---
+  /**
+   * handleConfirmDelete — Confirmer la suppression de la categorie ciblee
+   */
   const handleConfirmDelete = useCallback(async () => {
     if (deleteTarget.id) {
       await deleteCategory(deleteTarget.id)
-      setDeleteTarget({ open: false, id: "", name: "" })
+      setDeleteTarget({ open: false, id: "", name: "", hasChildren: false })
     }
   }, [deleteTarget.id, deleteCategory])
 
-  // Indique si le formulaire est en cours de soumission (creation ou edition)
+  // Indique si le formulaire est en cours de soumission
   const isSubmitting = isCreating || isUpdating
+
+  // ---------------------------------------------------------------------------
+  // Calcul du titre/description du dialog (dynamique selon le contexte)
+  // ---------------------------------------------------------------------------
+
+  /** Titre du dialog selon mode et type de categorie */
+  const dialogTitle =
+    dialogState.mode === "create"
+      ? dialogState.parentId
+        ? `Nouvelle sous-categorie — ${dialogState.parentName}`
+        : "Nouvelle categorie"
+      : dialogState.parentId
+        ? "Modifier la sous-categorie"
+        : "Modifier la categorie"
+
+  /** Description du dialog selon mode et type de categorie */
+  const dialogDescription =
+    dialogState.mode === "create"
+      ? dialogState.parentId
+        ? `Ajoutez une sous-categorie a "${dialogState.parentName}".`
+        : "Ajoutez une nouvelle categorie de prestation au catalogue."
+      : dialogState.parentId
+        ? `Modifiez les informations de cette sous-categorie${dialogState.parentName ? ` (${dialogState.parentName})` : ""}.`
+        : "Modifiez les informations de cette categorie."
 
   // -------------------------------------------------------------------------
   // Rendu : Skeleton de chargement
@@ -231,12 +359,10 @@ export function CategoryManager() {
     return (
       <Card>
         <CardHeader>
-          {/* Skeleton du titre et description */}
           <Skeleton className="h-6 w-48" />
           <Skeleton className="h-4 w-72" />
         </CardHeader>
         <CardContent>
-          {/* Skeleton du tableau (5 lignes simulees) */}
           <div className="space-y-3">
             {Array.from({ length: 5 }).map((_, i) => (
               <Skeleton key={i} className="h-12 w-full" />
@@ -257,10 +383,10 @@ export function CategoryManager() {
         <CardHeader>
           <CardTitle className="text-xl">Catalogue de prestations</CardTitle>
           <CardDescription>
-            Gerez les categories de services proposees par les coiffeuses sur la
-            marketplace.
+            Gerez les categories et sous-categories de services proposees par les
+            coiffeuses sur la marketplace.
           </CardDescription>
-          {/* Bouton d'ajout positionne en haut a droite grace a CardAction */}
+          {/* Bouton d'ajout positionne en haut a droite */}
           <CardAction>
             <Button size="sm" onClick={openCreateDialog}>
               <Plus className="size-4" />
@@ -287,7 +413,7 @@ export function CategoryManager() {
               </Button>
             </div>
           ) : (
-            /* --- Tableau des categories --- */
+            /* --- Tableau hierarchique des categories --- */
             <Table>
               <TableHeader>
                 <TableRow>
@@ -300,104 +426,213 @@ export function CategoryManager() {
               </TableHeader>
               <TableBody>
                 {categories.map((category) => (
-                  <TableRow key={category.id}>
-                    {/* Colonne : Miniature de l'image (masquee sur mobile) */}
-                    <TableCell className="hidden md:table-cell">
-                      {category.imageUrl ? (
-                        <img
-                          src={category.imageUrl}
-                          alt={category.name}
-                          className="size-10 rounded-md object-cover"
-                        />
-                      ) : (
-                        <div className="flex size-10 items-center justify-center rounded-md bg-muted">
-                          <ImageIcon className="size-4 text-muted-foreground" />
-                        </div>
-                      )}
-                    </TableCell>
+                  /*
+                   * Fragment avec key pour grouper la ligne parente
+                   * et ses lignes enfants sans element DOM supplementaire.
+                   */
+                  <Fragment key={category.id}>
+                    {/* ---- Ligne : Categorie parente (racine) ---- */}
+                    <TableRow>
+                      {/* Miniature image (masquee sur mobile) */}
+                      <TableCell className="hidden md:table-cell">
+                        {category.imageUrl ? (
+                          <img
+                            src={category.imageUrl}
+                            alt={category.name}
+                            className="size-10 rounded-md object-cover"
+                          />
+                        ) : (
+                          <div className="flex size-10 items-center justify-center rounded-md bg-muted">
+                            <ImageIcon className="size-4 text-muted-foreground" />
+                          </div>
+                        )}
+                      </TableCell>
 
-                    {/* Colonne : Nom de la categorie */}
-                    <TableCell className="font-medium">
-                      {category.name}
-                    </TableCell>
+                      {/* Nom en gras pour les racines */}
+                      <TableCell className="font-semibold">
+                        {category.name}
+                      </TableCell>
 
-                    {/* Colonne : Description (masquee sur mobile, tronquee si trop longue) */}
-                    <TableCell className="hidden md:table-cell max-w-[300px] truncate text-muted-foreground">
-                      {category.description || "—"}
-                    </TableCell>
+                      {/* Description (tronquee, masquee sur mobile) */}
+                      <TableCell className="hidden md:table-cell max-w-[300px] truncate text-muted-foreground">
+                        {category.description || "—"}
+                      </TableCell>
 
-                    {/* Colonne : Badge de statut actif/inactif */}
-                    <TableCell>
-                      <Badge
-                        variant={category.isActive ? "default" : "secondary"}
-                      >
-                        {category.isActive ? "Actif" : "Inactif"}
-                      </Badge>
-                    </TableCell>
+                      {/* Badge statut actif/inactif */}
+                      <TableCell>
+                        <Badge variant={category.isActive ? "default" : "secondary"}>
+                          {category.isActive ? "Actif" : "Inactif"}
+                        </Badge>
+                      </TableCell>
 
-                    {/* Colonne : Actions (Switch, Modifier, Supprimer) */}
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        {/* Switch pour activer/desactiver la categorie */}
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div>
-                              <Switch
-                                checked={category.isActive}
-                                onCheckedChange={() =>
-                                  handleToggleActive(
-                                    category.id,
-                                    category.isActive
-                                  )
+                      {/* Actions : + Sous-cat, Switch, Modifier, Supprimer */}
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          {/* Bouton : Ajouter une sous-categorie */}
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="xs"
+                                onClick={() => openCreateSubDialog(category)}
+                                aria-label={`Ajouter une sous-categorie a ${category.name}`}
+                              >
+                                <Plus className="size-3.5" />
+                                Sous-categorie
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              Ajouter une sous-categorie a {category.name}
+                            </TooltipContent>
+                          </Tooltip>
+
+                          {/* Switch actif/inactif */}
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div>
+                                <Switch
+                                  checked={category.isActive}
+                                  onCheckedChange={() =>
+                                    handleToggleActive(category.id, category.isActive)
+                                  }
+                                  disabled={isUpdating}
+                                  aria-label={`${category.isActive ? "Desactiver" : "Activer"} ${category.name}`}
+                                />
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {category.isActive ? "Desactiver" : "Activer"}
+                            </TooltipContent>
+                          </Tooltip>
+
+                          {/* Bouton Modifier */}
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon-xs"
+                                onClick={() => openEditDialog(category)}
+                                aria-label={`Modifier ${category.name}`}
+                              >
+                                <Pencil className="size-3.5" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Modifier</TooltipContent>
+                          </Tooltip>
+
+                          {/* Bouton Supprimer */}
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon-xs"
+                                onClick={() =>
+                                  setDeleteTarget({
+                                    open: true,
+                                    id: category.id,
+                                    name: category.name,
+                                    // Avertir si la racine a des enfants
+                                    hasChildren: category.children.length > 0,
+                                  })
                                 }
-                                disabled={isUpdating}
-                                aria-label={`${category.isActive ? "Desactiver" : "Activer"} la categorie ${category.name}`}
-                              />
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            {category.isActive ? "Desactiver" : "Activer"}
-                          </TooltipContent>
-                        </Tooltip>
+                                aria-label={`Supprimer ${category.name}`}
+                              >
+                                <Trash2 className="size-3.5 text-destructive" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Supprimer</TooltipContent>
+                          </Tooltip>
+                        </div>
+                      </TableCell>
+                    </TableRow>
 
-                        {/* Bouton : Modifier la categorie (ouvre le dialog pre-rempli) */}
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon-xs"
-                              onClick={() => openEditDialog(category)}
-                              aria-label={`Modifier la categorie ${category.name}`}
-                            >
-                              <Pencil className="size-3.5" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Modifier</TooltipContent>
-                        </Tooltip>
+                    {/* ---- Lignes : Sous-categories (indentees) ---- */}
+                    {category.children.map((child) => (
+                      <TableRow key={child.id} className="bg-muted/30">
+                        {/* Cellule image vide (alignement avec les racines) */}
+                        <TableCell className="hidden md:table-cell" />
 
-                        {/* Bouton : Supprimer la categorie (ouvre la confirmation) */}
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon-xs"
-                              onClick={() =>
-                                setDeleteTarget({
-                                  open: true,
-                                  id: category.id,
-                                  name: category.name,
-                                })
-                              }
-                              aria-label={`Supprimer la categorie ${category.name}`}
-                            >
-                              <Trash2 className="size-3.5 text-destructive" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Supprimer</TooltipContent>
-                        </Tooltip>
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                        {/* Nom avec prefixe ↳ pour indiquer l'appartenance */}
+                        <TableCell>
+                          <span className="text-muted-foreground mr-1 select-none">↳</span>
+                          <span className="font-medium">{child.name}</span>
+                        </TableCell>
+
+                        {/* Description de la sous-categorie */}
+                        <TableCell className="hidden md:table-cell max-w-[300px] truncate text-muted-foreground">
+                          {child.description || "—"}
+                        </TableCell>
+
+                        {/* Badge statut */}
+                        <TableCell>
+                          <Badge variant={child.isActive ? "default" : "secondary"}>
+                            {child.isActive ? "Actif" : "Inactif"}
+                          </Badge>
+                        </TableCell>
+
+                        {/* Actions : Switch, Modifier, Supprimer (sans bouton +Sous-cat) */}
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            {/* Switch actif/inactif */}
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div>
+                                  <Switch
+                                    checked={child.isActive}
+                                    onCheckedChange={() =>
+                                      handleToggleActive(child.id, child.isActive)
+                                    }
+                                    disabled={isUpdating}
+                                    aria-label={`${child.isActive ? "Desactiver" : "Activer"} ${child.name}`}
+                                  />
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {child.isActive ? "Desactiver" : "Activer"}
+                              </TooltipContent>
+                            </Tooltip>
+
+                            {/* Bouton Modifier */}
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon-xs"
+                                  onClick={() => openEditDialog(child)}
+                                  aria-label={`Modifier ${child.name}`}
+                                >
+                                  <Pencil className="size-3.5" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Modifier</TooltipContent>
+                            </Tooltip>
+
+                            {/* Bouton Supprimer */}
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon-xs"
+                                  onClick={() =>
+                                    setDeleteTarget({
+                                      open: true,
+                                      id: child.id,
+                                      name: child.name,
+                                      hasChildren: false, // les sous-categories n'ont pas d'enfants
+                                    })
+                                  }
+                                  aria-label={`Supprimer ${child.name}`}
+                                >
+                                  <Trash2 className="size-3.5 text-destructive" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Supprimer</TooltipContent>
+                            </Tooltip>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </Fragment>
                 ))}
               </TableBody>
             </Table>
@@ -406,7 +641,8 @@ export function CategoryManager() {
       </Card>
 
       {/* ================================================================= */}
-      {/* Dialog : Formulaire de creation / edition d'une categorie          */}
+      {/* Dialog : Formulaire de creation / edition                          */}
+      {/* Le titre et la description changent selon le contexte              */}
       {/* ================================================================= */}
       <Dialog
         open={dialogState.open}
@@ -416,25 +652,15 @@ export function CategoryManager() {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              {dialogState.mode === "create"
-                ? "Nouvelle categorie"
-                : "Modifier la categorie"}
-            </DialogTitle>
-            <DialogDescription>
-              {dialogState.mode === "create"
-                ? "Ajoutez une nouvelle categorie de prestation au catalogue."
-                : "Modifiez les informations de cette categorie."}
-            </DialogDescription>
+            {/* Titre dynamique : "Nouvelle categorie", "Nouvelle sous-categorie — Tresses",
+                "Modifier la categorie", "Modifier la sous-categorie" */}
+            <DialogTitle>{dialogTitle}</DialogTitle>
+            <DialogDescription>{dialogDescription}</DialogDescription>
           </DialogHeader>
 
-          {/* Formulaire React Hook Form integre avec les composants Form de shadcn */}
           <Form {...form}>
-            <form
-              onSubmit={form.handleSubmit(onSubmit)}
-              className="space-y-4"
-            >
-              {/* Champ : Nom de la categorie (obligatoire, min 2 caracteres) */}
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              {/* Champ : Nom (obligatoire, min 2 caracteres) */}
               <FormField
                 control={form.control}
                 name="name"
@@ -450,7 +676,11 @@ export function CategoryManager() {
                     <FormLabel>Nom</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="Ex : Tresses, Locks, Coloration..."
+                        placeholder={
+                          dialogState.parentId
+                            ? "Ex : Box Braids, Cornrows, Faux Locs..."
+                            : "Ex : Tresses, Locks, Coloration..."
+                        }
                         autoFocus
                         {...field}
                       />
@@ -460,7 +690,7 @@ export function CategoryManager() {
                 )}
               />
 
-              {/* Champ : Description de la categorie (facultatif) */}
+              {/* Champ : Description (facultatif) */}
               <FormField
                 control={form.control}
                 name="description"
@@ -484,25 +714,28 @@ export function CategoryManager() {
                 )}
               />
 
-              {/* Champ : Image de la categorie (optionnel, upload vers Supabase) */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium leading-none">
-                  Image{" "}
-                  <span className="text-muted-foreground font-normal">
-                    (facultatif)
-                  </span>
-                </label>
-                <ImageUpload
-                  bucket="categories"
-                  pathPrefix="categories"
-                  currentImageUrl={imageUrl}
-                  onUploadComplete={(url) => setImageUrl(url)}
-                  label="Choisir une image"
-                  variant="rectangle"
-                  enableCrop
-                  cropAspectRatio={16 / 9}
-                />
-              </div>
+              {/* Champ : Image — uniquement pour les categories racines
+                  Les sous-categories n'ont pas d'image propre */}
+              {!dialogState.parentId && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium leading-none">
+                    Image{" "}
+                    <span className="text-muted-foreground font-normal">
+                      (facultatif)
+                    </span>
+                  </label>
+                  <ImageUpload
+                    bucket="categories"
+                    pathPrefix="categories"
+                    currentImageUrl={imageUrl}
+                    onUploadComplete={(url) => setImageUrl(url)}
+                    label="Choisir une image"
+                    variant="rectangle"
+                    enableCrop
+                    cropAspectRatio={16 / 9}
+                  />
+                </div>
+              )}
 
               {/* Boutons : Annuler et Enregistrer */}
               <DialogFooter>
@@ -534,30 +767,44 @@ export function CategoryManager() {
 
       {/* ================================================================= */}
       {/* AlertDialog : Confirmation de suppression                          */}
+      {/* Le message varie selon que la categorie a des enfants ou non       */}
       {/* ================================================================= */}
       <AlertDialog
         open={deleteTarget.open}
         onOpenChange={(open) => {
-          if (!open) setDeleteTarget({ open: false, id: "", name: "" })
+          if (!open) setDeleteTarget({ open: false, id: "", name: "", hasChildren: false })
         }}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Supprimer la categorie</AlertDialogTitle>
-            <AlertDialogDescription>
-              Etes-vous sur de vouloir supprimer la categorie{" "}
-              <span className="font-semibold">&laquo;{deleteTarget.name}&raquo;</span>{" "}
-              ? Cette action est irreversible.
+            <AlertDialogDescription asChild>
+              <div>
+                {deleteTarget.hasChildren ? (
+                  /* Avertissement : la categorie parente a des sous-categories */
+                  <p>
+                    La categorie{" "}
+                    <span className="font-semibold">&laquo;{deleteTarget.name}&raquo;</span>{" "}
+                    contient des sous-categories. Vous devez d&apos;abord supprimer toutes ses
+                    sous-categories avant de pouvoir la supprimer.
+                  </p>
+                ) : (
+                  /* Confirmation standard */
+                  <p>
+                    Etes-vous sur de vouloir supprimer{" "}
+                    <span className="font-semibold">&laquo;{deleteTarget.name}&raquo;</span>{" "}
+                    ? Cette action est irreversible.
+                  </p>
+                )}
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>
-              Annuler
-            </AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>Annuler</AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
               onClick={handleConfirmDelete}
-              disabled={isDeleting}
+              disabled={isDeleting || deleteTarget.hasChildren}
             >
               {isDeleting ? (
                 <>

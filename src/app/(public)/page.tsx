@@ -37,6 +37,7 @@ import { MapPin, Scissors, Home } from "lucide-react"
 import { APP_NAME } from "@/shared/lib/constants"
 import { HeroSearchBar } from "@/modules/search/components/HeroSearchBar"
 import { getActiveCategories } from "@/modules/search/actions/search-actions"
+import { CategoryFlipCard } from "@/modules/search/components/CategoryFlipCard"
 import { getSession } from "@/shared/lib/auth/get-session"
 import { Button } from "@/components/ui/button"
 
@@ -290,38 +291,16 @@ export default async function HomePage() {
                     CATEGORY_FALLBACK_IMAGES[index % CATEGORY_FALLBACK_IMAGES.length]
 
                   return (
-                    <Link
+                    // CategoryFlipCard gere les 2 cas :
+                    //   - Sans sous-categories : lien direct vers /recherche?categoryId=...
+                    //   - Avec sous-categories : flip card CSS 3D (verso = liste sous-cats)
+                    // priority=true pour les 4 premieres cartes (dans le viewport initial)
+                    <CategoryFlipCard
                       key={category.id}
-                      href={`/recherche?categoryId=${category.id}`}
-                      className="group"
-                    >
-                      {/* Carte image rectangulaire (paysage 3:2) */}
-                      <div className="relative aspect-[3/2] overflow-hidden rounded-2xl shadow-sm transition-shadow duration-300 group-hover:shadow-lg">
-                        {/* Image de fond */}
-                        <Image
-                          src={imageSrc}
-                          alt={category.name}
-                          fill
-                          sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                          className="object-cover transition-transform duration-500 group-hover:scale-105"
-                        />
-
-                        {/* Gradient overlay : noir en bas pour lisibilite du texte */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-
-                        {/* Contenu texte positionne en bas */}
-                        <div className="absolute inset-x-0 bottom-0 p-4">
-                          <h3 className="text-base font-semibold text-white md:text-lg">
-                            {category.name}
-                          </h3>
-                          {category.serviceCount > 0 && (
-                            <p className="mt-0.5 text-xs text-white/80 md:text-sm">
-                              {category.serviceCount} prestation{category.serviceCount > 1 ? "s" : ""}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </Link>
+                      category={category}
+                      imageSrc={imageSrc}
+                      priority={index < 4}
+                    />
                   )
                 })}
               </div>

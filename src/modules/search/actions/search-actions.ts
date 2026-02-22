@@ -293,39 +293,78 @@ export interface ActiveCategory {
 }
 
 /**
- * getActiveCategories — Recuperer les categories de services actives
+ * ActiveCategoryWithChildren — Categorie racine avec ses sous-categories
+ *
+ * Utilise par :
+ *   - CategoryFlipCard sur la page d'accueil (verso de la carte flip)
+ *
+ * Exemple : { id: "...", name: "Tresses", children: [{ name: "Box Braids" }, ...] }
+ */
+export interface ActiveCategoryWithChildren extends ActiveCategory {
+  /** Sous-categories actives (tableau vide si aucune sous-categorie) */
+  children: ActiveCategory[]
+}
+
+/**
+ * getActiveCategories — Recuperer les categories racines actives avec leurs sous-categories
  *
  * Utilisee par :
- *   - La page d'accueil (Image Cards avec imageUrl, description, serviceCount)
+ *   - La page d'accueil (CategoryFlipCard : face avant + verso liste sous-cats)
  *   - Le composant SearchFilters (utilise uniquement id et name)
  *
+ * Retourne uniquement les categories racines (parentId: null).
+ * Chaque categorie inclut ses enfants directs actifs.
  * Action publique : pas de verification d'authentification.
  *
- * @returns ActionResult<ActiveCategory[]>
+ * @returns ActionResult<ActiveCategoryWithChildren[]>
  */
 export async function getActiveCategories(): Promise<
-  ActionResult<ActiveCategory[]>
+  ActionResult<ActiveCategoryWithChildren[]>
 > {
   try {
+    // Charger uniquement les categories racines (parentId: null)
+    // avec leurs sous-categories actives incluses
     const categories = await db.serviceCategory.findMany({
-      where: { isActive: true },
+      where: {
+        isActive: true,
+        parentId: null, // Uniquement les categories racines
+      },
       select: {
         id: true,
         name: true,
         description: true,
         imageUrl: true,
         _count: { select: { services: true } },
+        // Inclure les sous-categories actives, triees par nom
+        children: {
+          where: { isActive: true },
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            imageUrl: true,
+            _count: { select: { services: true } },
+          },
+          orderBy: { name: "asc" },
+        },
       },
       orderBy: { name: "asc" },
     })
 
-    /* Transformer _count.services en serviceCount (plus lisible) */
-    const data: ActiveCategory[] = categories.map((cat) => ({
+    /* Transformer _count.services en serviceCount pour la racine ET les enfants */
+    const data: ActiveCategoryWithChildren[] = categories.map((cat) => ({
       id: cat.id,
       name: cat.name,
       description: cat.description,
       imageUrl: cat.imageUrl,
       serviceCount: cat._count.services,
+      children: cat.children.map((child) => ({
+        id: child.id,
+        name: child.name,
+        description: child.description,
+        imageUrl: child.imageUrl,
+        serviceCount: child._count.services,
+      })),
     }))
 
     return { success: true, data }

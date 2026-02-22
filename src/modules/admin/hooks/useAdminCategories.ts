@@ -4,28 +4,24 @@
  * Role : Fournir les donnees et mutations pour gerer les categories
  *        de services depuis le panneau d'administration. Encapsule
  *        les appels aux server actions avec cache, invalidation et toasts.
+ *        Supporte le systeme hierarchique (categories + sous-categories).
  *
  * Interactions :
  *   - Appelle les server actions de category-actions.ts
  *   - Invalide le cache TanStack Query apres chaque mutation reussie
  *   - Affiche des toasts de feedback via sonner (succes/erreur)
+ *   - Le toast de creation distingue "Categorie creee" et "Sous-categorie creee"
  *   - Utilise dans les composants admin : CategoryManager, etc.
  *
  * Exemple :
- *   // Dans un composant admin
  *   const { categories, isLoading } = useAdminCategories()
- *   const { createCategory, isCreating } = useCreateCategory()
- *   const { updateCategory, isUpdating } = useUpdateCategory()
- *   const { deleteCategory, isDeleting } = useDeleteCategory()
+ *   // categories = CategoryWithChildren[] (racines + leurs enfants)
  *
- *   // Creer une categorie
- *   await createCategory({ name: "Tresses", description: "Box braids, cornrows" })
- *
- *   // Mettre a jour une categorie
- *   await updateCategory({ id: "cat-id", input: { isActive: false } })
- *
- *   // Supprimer une categorie
- *   await deleteCategory("cat-id")
+ *   const { createCategory } = useCreateCategory()
+ *   // Creer une racine :
+ *   await createCategory({ name: "Tresses" })
+ *   // Creer une sous-categorie :
+ *   await createCategory({ name: "Box Braids", parentId: "cat-tresses-id" })
  */
 "use client"
 
@@ -36,6 +32,7 @@ import {
   createCategory,
   updateCategory,
   deleteCategory,
+  type CategoryWithChildren,
 } from "../actions/category-actions"
 
 /* ------------------------------------------------------------------ */
@@ -50,15 +47,21 @@ const ADMIN_CATEGORIES_KEY = ["admin", "categories"]
 /* ------------------------------------------------------------------ */
 
 /**
- * useAdminCategories — Recuperer toutes les categories (actives et inactives)
+ * useAdminCategories — Recuperer toutes les categories racines avec leurs enfants
  *
- * Utilise useQuery pour fetcher et cacher les categories.
+ * Utilise useQuery pour fetcher et cacher les categories (structure hierarchique).
  * Le cache est invalide automatiquement apres chaque mutation (create, update, delete).
  *
  * Exemple :
  *   const { categories, isLoading } = useAdminCategories()
  *   if (isLoading) return <Skeleton />
- *   categories.map(cat => <div key={cat.id}>{cat.name}</div>)
+ *   // Iterer sur les racines et leurs enfants :
+ *   categories.map(cat => (
+ *     <>
+ *       <div>{cat.name}</div>
+ *       {cat.children.map(child => <div key={child.id}>↳ {child.name}</div>)}
+ *     </>
+ *   ))
  */
 export function useAdminCategories() {
   const query = useQuery({
@@ -66,31 +69,35 @@ export function useAdminCategories() {
     queryFn: async () => {
       const result = await getCategories()
       if (!result.success) throw new Error(result.error)
+      // result.data est typee CategoryWithChildren[] (racines + enfants inclus)
       return result.data
     },
   })
 
   return {
-    /** Liste des categories (tableau vide pendant le chargement) */
-    categories: query.data ?? [],
+    /** Liste des categories racines avec leurs sous-categories imbriquees */
+    categories: (query.data ?? []) as CategoryWithChildren[],
     /** true pendant le chargement initial */
     isLoading: query.isPending,
   }
 }
 
 /**
- * useCreateCategory — Mutation pour creer une nouvelle categorie
+ * useCreateCategory — Mutation pour creer une nouvelle categorie ou sous-categorie
  *
  * Apres creation reussie :
  * - Invalide le cache des categories (refetch automatique)
- * - Affiche un toast de succes
+ * - Toast "Categorie creee" ou "Sous-categorie creee" selon le contexte
  *
- * En cas d'erreur (nom duplique, etc.) :
+ * En cas d'erreur (nom duplique, parent inexistant, etc.) :
  * - Affiche un toast d'erreur avec le message du serveur
  *
- * Exemple :
- *   const { createCategory, isCreating } = useCreateCategory()
+ * Exemple (racine) :
+ *   const { createCategory } = useCreateCategory()
  *   await createCategory({ name: "Locks", description: "Installation et retouches" })
+ *
+ * Exemple (sous-categorie) :
+ *   await createCategory({ name: "Box Braids", parentId: "cat-tresses-id" })
  */
 export function useCreateCategory() {
   const queryClient = useQueryClient()
@@ -98,17 +105,26 @@ export function useCreateCategory() {
   const mutation = useMutation({
     /**
      * Appelle la server action createCategory
-     * @param data - { name: string, description?: string }
+     * @param data.name        - Nom de la categorie ou sous-categorie
+     * @param data.description - Description optionnelle
+     * @param data.imageUrl    - URL image optionnelle
+     * @param data.parentId    - ID du parent si sous-categorie (absent = racine)
      */
-    mutationFn: async (data: { name: string; description?: string; imageUrl?: string }) => {
+    mutationFn: async (data: {
+      name: string
+      description?: string
+      imageUrl?: string
+      parentId?: string
+    }) => {
       const result = await createCategory(data)
       if (!result.success) throw new Error(result.error)
       return result.data
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       // Invalider le cache pour forcer le refetch de la liste
       queryClient.invalidateQueries({ queryKey: ADMIN_CATEGORIES_KEY })
-      toast.success("Categorie creee avec succes")
+      // Le message distingue categorie racine et sous-categorie
+      toast.success(data.parentId ? "Sous-categorie creee avec succes" : "Categorie creee avec succes")
     },
     onError: (error: Error) => {
       toast.error(error.message)
@@ -116,7 +132,7 @@ export function useCreateCategory() {
   })
 
   return {
-    /** Fonction pour creer une categorie (retourne une Promise) */
+    /** Fonction pour creer une categorie ou sous-categorie (retourne une Promise) */
     createCategory: mutation.mutateAsync,
     /** true pendant la creation */
     isCreating: mutation.isPending,
@@ -132,9 +148,9 @@ export function useCreateCategory() {
  *
  * Exemple :
  *   const { updateCategory, isUpdating } = useUpdateCategory()
- *   // Renommer une categorie
+ *   // Renommer :
  *   await updateCategory({ id: "cat-id", input: { name: "Nouveau nom" } })
- *   // Desactiver une categorie
+ *   // Desactiver :
  *   await updateCategory({ id: "cat-id", input: { isActive: false } })
  */
 export function useUpdateCategory() {
@@ -143,7 +159,7 @@ export function useUpdateCategory() {
   const mutation = useMutation({
     /**
      * Appelle la server action updateCategory
-     * @param params.id - Identifiant de la categorie
+     * @param params.id    - Identifiant de la categorie
      * @param params.input - Champs a mettre a jour
      */
     mutationFn: async (params: {
@@ -174,9 +190,9 @@ export function useUpdateCategory() {
 /**
  * useDeleteCategory — Mutation pour supprimer une categorie
  *
- * La suppression echoue si des services de coiffeuses sont lies
- * a cette categorie. Le message d'erreur du serveur est affiche
- * dans un toast.
+ * La suppression echoue cote serveur si :
+ *   - La categorie a des sous-categories (les supprimer d'abord)
+ *   - Des services de coiffeuses l'utilisent
  *
  * Apres suppression reussie :
  * - Invalide le cache des categories (refetch automatique)
@@ -184,11 +200,8 @@ export function useUpdateCategory() {
  *
  * Exemple :
  *   const { deleteCategory, isDeleting } = useDeleteCategory()
- *   try {
- *     await deleteCategory("cat-id")
- *   } catch (error) {
- *     // Le toast d'erreur est deja affiche par onError
- *   }
+ *   await deleteCategory("cat-id")
+ *   // En cas d'erreur, le toast est affiche automatiquement par onError
  */
 export function useDeleteCategory() {
   const queryClient = useQueryClient()

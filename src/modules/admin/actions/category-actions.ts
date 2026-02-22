@@ -5,21 +5,23 @@
  *        (ServiceCategory). Reserve exclusivement aux utilisateurs avec
  *        le role ADMIN. Les categories definissent les types de prestations
  *        disponibles sur la marketplace (tresses, locks, coloration, etc.).
+ *        Supporte une hierarchie a 2 niveaux (categorie racine + sous-categories).
  *
  * Interactions :
  *   - Utilise getSession() pour verifier l'authentification et le role ADMIN
  *   - Utilise Prisma (db) pour les operations BDD sur service_categories
  *   - Retourne des ActionResult<T> standardises
+ *   - Les categories racines sont incluses avec leurs enfants (CategoryWithChildren)
  *   - Les categories sont ensuite utilisees par les coiffeuses via le
  *     module stylist (service-actions.ts > getAvailableCategories)
  *
  * Exemple :
  *   const result = await getCategories()
- *   // result = { success: true, data: [{ id: "...", name: "Tresses", ... }] }
+ *   // result.data = [{ id: "...", name: "Tresses", children: [{ name: "Box Braids" }] }]
  *
- *   await createCategory({ name: "Locks", description: "Installation et entretien" })
+ *   await createCategory({ name: "Box Braids", parentId: "cat-id" })
  *   await updateCategory("cat-id", { isActive: false })
- *   await deleteCategory("cat-id") // echoue si des services sont lies
+ *   await deleteCategory("cat-id") // echoue si des services ou sous-categories sont lies
  */
 "use server"
 
@@ -27,6 +29,30 @@ import { db } from "@/shared/lib/db"
 import { getSession } from "@/shared/lib/auth/get-session"
 import type { ActionResult } from "@/shared/types"
 import type { ServiceCategory } from "@prisma/client"
+
+/* ------------------------------------------------------------------ */
+/* Types exportes                                                      */
+/* ------------------------------------------------------------------ */
+
+/**
+ * CategoryWithChildren — Categorie racine enrichie de ses enfants directs
+ *
+ * Utilise dans le tableau admin pour afficher la hierarchie.
+ * Seules les categories racines (parentId === null) ont ce type ;
+ * les enfants sont des ServiceCategory simples.
+ *
+ * Exemple :
+ *   {
+ *     id: "abc", name: "Tresses", parentId: null,
+ *     children: [
+ *       { id: "def", name: "Box Braids", parentId: "abc" },
+ *       { id: "ghi", name: "Cornrows",   parentId: "abc" },
+ *     ]
+ *   }
+ */
+export type CategoryWithChildren = ServiceCategory & {
+  children: ServiceCategory[]
+}
 
 /* ------------------------------------------------------------------ */
 /* Helpers internes                                                    */
@@ -54,25 +80,37 @@ async function verifyAdmin(): Promise<ActionResult<never> | null> {
 /* ------------------------------------------------------------------ */
 
 /**
- * getCategories — Recuperer toutes les categories (actives et inactives)
+ * getCategories — Recuperer toutes les categories racines avec leurs enfants
  *
- * L'admin voit toutes les categories, y compris les inactives,
- * pour pouvoir les reactiver si besoin. Triees par nom alphabetique.
+ * L'admin voit toutes les categories (actives et inactives).
+ * Seules les categories racines (parentId IS NULL) sont retournees ;
+ * chacune inclut ses sous-categories triees par ordre alphabetique.
  *
  * Exemple de retour :
  *   {
  *     success: true,
  *     data: [
- *       { id: "abc", name: "Coloration", description: "...", isActive: true },
- *       { id: "def", name: "Tresses", description: null, isActive: false },
+ *       {
+ *         id: "abc", name: "Tresses", parentId: null, isActive: true,
+ *         children: [
+ *           { id: "def", name: "Box Braids", parentId: "abc", isActive: true },
+ *         ]
+ *       },
+ *       { id: "xyz", name: "Coloration", parentId: null, isActive: true, children: [] },
  *     ]
  *   }
  */
-export async function getCategories(): Promise<ActionResult<ServiceCategory[]>> {
+export async function getCategories(): Promise<ActionResult<CategoryWithChildren[]>> {
   const error = await verifyAdmin()
   if (error) return error
 
+  // Fetcher uniquement les racines (parentId IS NULL)
+  // et inclure leurs enfants tries alphabetiquement
   const categories = await db.serviceCategory.findMany({
+    where: { parentId: null },
+    include: {
+      children: { orderBy: { name: "asc" } },
+    },
     orderBy: { name: "asc" },
   })
 
@@ -80,40 +118,50 @@ export async function getCategories(): Promise<ActionResult<ServiceCategory[]>> 
 }
 
 /**
- * createCategory — Creer une nouvelle categorie de service
+ * createCategory — Creer une nouvelle categorie ou sous-categorie
  *
- * Verifie l'unicite du nom avant creation. Le nom est le seul champ
- * obligatoire ; la description est optionnelle.
+ * Verifie l'unicite du nom avant creation.
+ * Si parentId est fourni :
+ *   - le parent doit exister
+ *   - le parent doit etre une categorie racine (2 niveaux max)
  *
- * @param input - Objet contenant le nom et la description optionnelle
- * @param input.name - Nom unique de la categorie (ex: "Tresses africaines")
- * @param input.description - Description optionnelle (ex: "Box braids, cornrows, etc.")
- * @param input.imageUrl - URL de l'image de la categorie (optionnelle, via Supabase Storage)
+ * @param input.name        - Nom unique de la categorie (ex: "Box Braids")
+ * @param input.description - Description optionnelle
+ * @param input.imageUrl    - URL image optionnelle (Supabase Storage)
+ * @param input.parentId    - ID de la categorie parente (null/absent = racine)
  *
- * Exemple :
- *   const result = await createCategory({
- *     name: "Tresses africaines",
- *     description: "Box braids, cornrows, twists et vanilles"
- *   })
- *   // result.success === true => result.data contient la categorie creee
- *   // result.success === false => result.error contient le message
+ * Exemple (racine) :
+ *   await createCategory({ name: "Tresses", description: "Box braids, cornrows..." })
+ *
+ * Exemple (sous-categorie) :
+ *   await createCategory({ name: "Box Braids", parentId: "cat-tresses-id" })
  */
 export async function createCategory(
-  input: { name: string; description?: string; imageUrl?: string }
+  input: { name: string; description?: string; imageUrl?: string; parentId?: string }
 ): Promise<ActionResult<ServiceCategory>> {
   const error = await verifyAdmin()
   if (error) return error
 
-  const { name, description, imageUrl } = input
+  const { name, description, imageUrl, parentId } = input
 
-  // Verifier l'unicite du nom (la contrainte @unique existe en BDD,
-  // mais on prefere retourner un message clair plutot qu'une erreur Prisma)
-  const existing = await db.serviceCategory.findUnique({
-    where: { name },
-  })
-
+  // Verifier l'unicite du nom (message clair plutot qu'une erreur Prisma)
+  const existing = await db.serviceCategory.findUnique({ where: { name } })
   if (existing) {
     return { success: false, error: `La categorie "${name}" existe deja` }
+  }
+
+  // Si parentId fourni : verifier que le parent existe ET est une racine
+  // (on autorise seulement 2 niveaux de hierarchie)
+  if (parentId) {
+    const parent = await db.serviceCategory.findUnique({
+      where: { id: parentId },
+    })
+    if (!parent) {
+      return { success: false, error: "Categorie parente introuvable" }
+    }
+    if (parent.parentId !== null) {
+      return { success: false, error: "Impossible de creer une sous-sous-categorie (2 niveaux max)" }
+    }
   }
 
   // Creer la categorie (isActive est true par defaut via le schema Prisma)
@@ -122,6 +170,7 @@ export async function createCategory(
       name,
       description: description || null,
       imageUrl: imageUrl || null,
+      parentId: parentId || null,
     },
   })
 
@@ -131,16 +180,12 @@ export async function createCategory(
 /**
  * updateCategory — Mettre a jour une categorie existante
  *
- * Permet de modifier le nom, la description et/ou le statut actif.
+ * Permet de modifier le nom, la description, le statut actif et l'image.
  * Si le nom est modifie, on verifie qu'il n'entre pas en conflit
- * avec une autre categorie existante.
+ * avec une autre categorie existante (contrainte @unique globale).
  *
  * @param id - Identifiant CUID de la categorie a modifier
  * @param input - Champs a mettre a jour (tous optionnels)
- * @param input.name - Nouveau nom (optionnel)
- * @param input.description - Nouvelle description (optionnel)
- * @param input.isActive - Nouveau statut actif/inactif (optionnel)
- * @param input.imageUrl - Nouvelle URL image (optionnel, null pour supprimer)
  *
  * Exemple (desactiver une categorie) :
  *   await updateCategory("cat-id", { isActive: false })
@@ -156,20 +201,16 @@ export async function updateCategory(
   if (error) return error
 
   // Verifier que la categorie existe
-  const existing = await db.serviceCategory.findUnique({
-    where: { id },
-  })
-
+  const existing = await db.serviceCategory.findUnique({ where: { id } })
   if (!existing) {
     return { success: false, error: "Categorie non trouvee" }
   }
 
-  // Si le nom est modifie, verifier l'unicite
+  // Si le nom est modifie, verifier l'unicite (exclure la categorie en cours)
   if (input.name && input.name !== existing.name) {
     const duplicate = await db.serviceCategory.findUnique({
       where: { name: input.name },
     })
-
     if (duplicate) {
       return { success: false, error: `La categorie "${input.name}" existe deja` }
     }
@@ -192,16 +233,16 @@ export async function updateCategory(
 /**
  * deleteCategory — Supprimer une categorie
  *
- * La suppression est bloquee si des services de coiffeuses sont lies
- * a cette categorie. L'admin doit d'abord desactiver la categorie
- * et s'assurer qu'aucun service ne l'utilise.
+ * La suppression est bloquee si :
+ *   1. La categorie possede des sous-categories (les supprimer d'abord)
+ *   2. Des services de coiffeuses utilisent cette categorie
  *
  * @param id - Identifiant CUID de la categorie a supprimer
  *
  * Exemple :
  *   const result = await deleteCategory("cat-id")
  *   if (!result.success) {
- *     // result.error === "Impossible de supprimer : 5 service(s) utilisent cette categorie..."
+ *     // result.error contient le message d'erreur explicite
  *   }
  */
 export async function deleteCategory(
@@ -210,13 +251,15 @@ export async function deleteCategory(
   const error = await verifyAdmin()
   if (error) return error
 
-  // Verifier que la categorie existe
+  // Charger la categorie avec le compte de ses services ET sous-categories
   const existing = await db.serviceCategory.findUnique({
     where: { id },
-    // Compter le nombre de services lies a cette categorie
     include: {
       _count: {
-        select: { services: true },
+        select: {
+          services: true,  // Nombre de services coiffeuse lies
+          children: true,  // Nombre de sous-categories directes
+        },
       },
     },
   })
@@ -225,7 +268,15 @@ export async function deleteCategory(
     return { success: false, error: "Categorie non trouvee" }
   }
 
-  // Bloquer la suppression si des services utilisent cette categorie
+  // Bloquer si des sous-categories existent (doivent etre supprimees en premier)
+  if (existing._count.children > 0) {
+    return {
+      success: false,
+      error: `Impossible de supprimer : cette categorie contient ${existing._count.children} sous-categorie(s). Supprimez-les d'abord.`,
+    }
+  }
+
+  // Bloquer si des services de coiffeuses utilisent cette categorie
   if (existing._count.services > 0) {
     return {
       success: false,
@@ -233,7 +284,7 @@ export async function deleteCategory(
     }
   }
 
-  // Supprimer la categorie (aucun service lie)
+  // Aucune dependance : suppression autorisee
   await db.serviceCategory.delete({ where: { id } })
 
   return { success: true, data: { id } }
