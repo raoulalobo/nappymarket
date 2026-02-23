@@ -50,7 +50,12 @@ export function Header({ mobileNav }: HeaderProps) {
 
           {/* Logo et nom de l'application */}
           <Link href="/" className="flex items-center gap-2">
-            <span className="text-xl font-bold tracking-tight">{APP_NAME}</span>
+            <span className="text-xl font-bold tracking-tight">
+              {/* Nom complet "NappyMarket" uniquement a partir de lg (>= 1024px) */}
+              <span className="hidden lg:inline">{APP_NAME}</span>
+              {/* Sigle "NM" sur mobile (< md) et écrans intermédiaires (md–lg) */}
+              <span className="inline lg:hidden">NM</span>
+            </span>
           </Link>
         </div>
 
