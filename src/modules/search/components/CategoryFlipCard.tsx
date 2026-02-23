@@ -212,7 +212,8 @@ export function CategoryFlipCard({
             "absolute inset-0 overflow-hidden rounded-2xl",
             // Dots minimaliste : fond blanc + points cinnamon en radial-gradient CSS pur
             // Cercles de 1.5px espacés de 16px — discrets, texturés, identité NappyMarket
-            "bg-card p-4 border border-border",
+            // p-4 retiré ici — le padding est géré par le conteneur flex interne
+            "bg-card border border-border",
             "bg-[radial-gradient(oklch(0.72_0.1_55_/_0.20)_1.5px,transparent_1.5px)]",
             "[background-size:16px_16px]",
             // Cacher la face arriere quand on regarde la face avant
@@ -223,9 +224,10 @@ export function CategoryFlipCard({
           // Empecher le clic sur la face arriere de retourner a nouveau
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Bouton fermeture (×) — retourne a la face avant */}
+          {/* Bouton fermeture (×) — positionné absolument dans la div externe */}
+          {/* Toujours visible en haut à droite, indépendamment du scroll */}
           <button
-            className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full bg-muted text-muted-foreground hover:bg-muted/70 transition-colors"
+            className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full bg-muted text-muted-foreground hover:bg-muted/70 transition-colors z-10"
             onClick={(e) => {
               e.stopPropagation() // Ne pas remonter au conteneur
               setIsFlipped(false)
@@ -235,53 +237,76 @@ export function CategoryFlipCard({
             <X className="h-3.5 w-3.5" />
           </button>
 
-          {/* Titre : nom de la categorie parente */}
-          <p className="mb-3 pr-8 text-sm font-semibold text-card-foreground">
-            {category.name}
-          </p>
+          {/* Conteneur flex column — remplit toute la hauteur de la carte */}
+          {/* flex-col + h-full permettent de distribuer l'espace entre titre, liste et bouton */}
+          <div className="flex h-full flex-col p-3">
 
-          {/* Liste des sous-categories : boutons qui ouvrent le modal de ville */}
-          {/* (auparavant des <Link>, inutilisables sans lat/lng pour Haversine) */}
-          <ul className="flex flex-col gap-1.5">
-            {category.children.map((child) => (
-              <li key={child.id}>
-                <button
-                  type="button"
-                  className="flex w-full items-center justify-between rounded-lg bg-secondary px-3 py-2 text-xs text-secondary-foreground transition-colors hover:bg-primary/10 hover:text-primary"
-                  onClick={(e) => {
-                    e.stopPropagation() // Ne pas déclencher le flip du conteneur
-                    openModal(child.id, child.name)
-                  }}
-                >
-                  <span className="font-medium">{child.name}</span>
-                  <ChevronRight className="h-3 w-3 shrink-0 text-muted-foreground" />
-                </button>
-              </li>
-            ))}
-          </ul>
+            {/* Titre : nom de la categorie parente */}
+            {/* shrink-0 : hauteur fixe, ne se compresse pas quand la liste est grande */}
+            {/* pr-6 : espace pour le bouton × positionné absolument */}
+            <p className="mb-2 shrink-0 pr-6 text-sm font-semibold text-card-foreground">
+              {category.name}
+            </p>
 
-          {/* Bouton "Voir tout" — ouvre le modal avec l'ID de la catégorie racine */}
-          <button
-            type="button"
-            className="mt-3 flex w-full items-center justify-center gap-1 rounded-lg border border-primary/40 py-2 text-xs font-medium text-primary transition-colors hover:border-primary hover:bg-primary/5"
-            onClick={(e) => {
-              e.stopPropagation() // Ne pas déclencher le flip du conteneur
-              openModal(category.id, category.name)
-            }}
-          >
-            Voir tout — {category.name}
-          </button>
+            {/* Zone scrollable — s'étire pour remplir l'espace disponible */}
+            {/* min-h-0 est CRITIQUE : sans lui, flex ignore overflow et la liste déborde */}
+            {/* relative permet de positionner le dégradé de fondu en absolu */}
+            <div className="relative min-h-0 flex-1">
+              {/* Liste des sous-categories : boutons qui ouvrent le modal de ville */}
+              {/* (auparavant des <Link>, inutilisables sans lat/lng pour Haversine) */}
+              {/* h-full + overflow-y-auto : scroll tactile fluide sur mobile */}
+              {/* [scrollbar-width:none] + [&::-webkit-scrollbar]:hidden : masque la scrollbar */}
+              <ul className="flex h-full flex-col gap-1.5 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {category.children.map((child) => (
+                  <li key={child.id}>
+                    <button
+                      type="button"
+                      className="flex w-full items-center justify-between rounded-lg bg-secondary px-3 py-2 text-xs text-secondary-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+                      onClick={(e) => {
+                        e.stopPropagation() // Ne pas déclencher le flip du conteneur
+                        openModal(child.id, child.name)
+                      }}
+                    >
+                      <span className="font-medium">{child.name}</span>
+                      <ChevronRight className="h-3 w-3 shrink-0 text-muted-foreground" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
 
-          {/* Modal de sélection de ville — rendu conditionnel */}
-          {/* Injecté dans la face arrière pour rester dans le même arbre DOM */}
-          {pendingCategoryId && (
-            <CategoryCityModal
-              open={modalOpen}
-              onOpenChange={setModalOpen}
-              categoryId={pendingCategoryId}
-              categoryName={pendingCategoryName}
-            />
-          )}
+              {/* Dégradé de fondu en bas — indique visuellement qu'il y a plus de contenu */}
+              {/* pointer-events-none : ne bloque pas les clics sur les items dessous */}
+              {/* Visible uniquement si plus de 3 sous-catégories (sinon inutile) */}
+              {category.children.length > 3 && (
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-5 bg-gradient-to-t from-card to-transparent" />
+              )}
+            </div>
+
+            {/* Bouton "Voir tout" — hauteur fixe en bas de la carte */}
+            {/* shrink-0 : ne se compresse jamais, toujours visible */}
+            {/* mt-2 : espacement minimal avec la zone scrollable */}
+            <button
+              type="button"
+              className="mt-2 shrink-0 flex w-full items-center justify-center gap-1 rounded-lg border border-primary/40 py-2 text-xs font-medium text-primary transition-colors hover:border-primary hover:bg-primary/5"
+              onClick={(e) => {
+                e.stopPropagation() // Ne pas déclencher le flip du conteneur
+                openModal(category.id, category.name)
+              }}
+            >
+              Voir tout — {category.name}
+            </button>
+
+            {/* Modal de sélection de ville — rendu conditionnel */}
+            {/* Injecté dans le conteneur flex pour rester dans le même arbre DOM */}
+            {pendingCategoryId && (
+              <CategoryCityModal
+                open={modalOpen}
+                onOpenChange={setModalOpen}
+                categoryId={pendingCategoryId}
+                categoryName={pendingCategoryName}
+              />
+            )}
+          </div>
         </div>
       </div>
     </div>
